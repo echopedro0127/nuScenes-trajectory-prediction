@@ -36,6 +36,37 @@ def test_build_motion_features_contains_xy_displacement_and_velocity() -> None:
     np.testing.assert_allclose(result[-1], [0, 0, 0, 1, 0, 2])
 
 
+@pytest.mark.parametrize(
+    'history_xy',
+    [[], np.empty((0, 2)), [0, 1], [[0, 1, 2]], [[[0, 1]]]],
+)
+def test_build_motion_features_rejects_invalid_history_shape(history_xy) -> None:
+    with pytest.raises(
+        ValueError, match=r'history_xy must have shape \[T, 2\] with T >= 1'
+    ):
+        build_motion_features(history_xy, dt=0.5)
+
+
+@pytest.mark.parametrize('dt', [0, -0.5, np.nan, np.inf, -np.inf])
+def test_build_motion_features_rejects_invalid_dt(dt: float) -> None:
+    with pytest.raises(
+        ValueError, match='dt must be finite and greater than zero'
+    ):
+        build_motion_features([[0, 0]], dt=dt)
+
+
+@pytest.mark.parametrize('transform', [global_to_agent, agent_to_global])
+def test_coordinate_transform_rejects_points_without_xy_dimension(transform) -> None:
+    with pytest.raises(ValueError, match='points must have final dimension 2'):
+        transform([[1, 2, 3]], anchor_xy=[0, 0], anchor_yaw=0)
+
+
+@pytest.mark.parametrize('transform', [global_to_agent, agent_to_global])
+def test_coordinate_transform_rejects_invalid_anchor_shape(transform) -> None:
+    with pytest.raises(ValueError, match=r'anchor_xy must have shape \(2,\)'):
+        transform([[1, 2]], anchor_xy=[[0, 0]], anchor_yaw=0)
+
+
 def test_trajectory_sample_is_frozen() -> None:
     sample = TrajectorySample(
         instance_token='instance',
