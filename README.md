@@ -44,6 +44,33 @@ The first command that touches `data/nuscenes` requires a user-downloaded nuScen
 no credentials, cookies, signed URLs, or raw data are automated here. Mini metrics are
 smoke-test results only and must not be presented as final benchmark claims.
 
+For a fail-fast end-to-end mini run (static baselines, GRU/Transformer, online correction
+and maneuver/failure exports), use the PowerShell orchestrator:
+
+```powershell
+.\scripts\run_smoke.ps1
+```
+
+After the metadata-only train/validation caches are prepared, the full scene-level run is:
+
+```powershell
+.\scripts\run_main.ps1
+```
+
+Both scripts accept `-SkipTraining` only when the expected `best.pt` checkpoints already
+exist. They keep generated artifacts under `outputs/`, which is intentionally ignored.
+
+Measured result tables can be regenerated without editing numbers by passing artifact paths
+to `scripts/build_readme_tables.py`, for example:
+
+```powershell
+.\.venv\Scripts\python scripts\build_readme_tables.py `
+  --static CV=outputs\mini\cv\metrics.json GRU=outputs\mini\gru_eval\metrics.json `
+  --horizon CV=outputs\mini\cv\metrics.json `
+  --online MINI=outputs\mini\online\online_metrics.json `
+  --output outputs\README_TABLES.md
+```
+
 ## Static evaluation outputs
 
 Each evaluation directory contains `metrics.json`, `per_sample.csv`, `predictions.npz`,
