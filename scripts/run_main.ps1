@@ -13,6 +13,7 @@ if (-not (Test-Path $pythonPath)) {
     throw "Python executable not found: $pythonPath"
 }
 $env:UV_CACHE_DIR = Join-Path $root ".uv-cache"
+$env:CUBLAS_WORKSPACE_CONFIG = ":4096:8"
 Set-Location $root
 
 function Invoke-Python {

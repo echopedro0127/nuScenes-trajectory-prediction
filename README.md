@@ -74,8 +74,6 @@ to `scripts/build_readme_tables.py`, for example:
   --output outputs\README_TABLES.md
 ```
 
-## Static evaluation outputs
-
 ## Mini smoke results (not final benchmark claims)
 
 The first metadata-only run completed on `v1.0-mini` with 47 accepted `mini_val` agents.
@@ -100,6 +98,37 @@ The causal online protocol on the same 47 agents reports rolling-row means:
 The complete generated tables, horizon breakdown, maneuver groups and provenance remain
 under ignored `outputs/mini/README_TABLES.md`. Re-run the smoke command after any code or
 configuration change instead of hand-editing these values.
+
+## Trainval validation results
+
+The metadata-only scene-level run used `train` for fitting, `train_val` for model selection,
+and the locked `val` split for reporting. It contains 7,201 accepted validation agents;
+sensor blobs were not downloaded. These are the first reproducible project results, not a
+claim of state-of-the-art performance:
+
+| Model | ADE | FDE | MissRate@2m |
+| --- | ---: | ---: | ---: |
+| Finite-difference CV | 4.668 | 11.280 | 0.910 |
+| CV + heading | 4.562 | 11.104 | 0.904 |
+| GRU | 3.766 | 8.950 | 0.914 |
+| Lightweight Transformer | 3.761 | 8.918 | 0.916 |
+
+At the 1-second horizon, the Transformer reaches ADE `0.440` and FDE `0.595`; at 3 seconds
+it reaches ADE `1.386` and FDE `2.817`. The complete 1/3/6-second table is regenerated
+from `outputs/trainval/README_TABLES.md`.
+
+The supplementary causal online protocol reports 79,211 rolling update rows:
+
+| Strategy | ADE | FDE | Jitter | p95 latency (ms) |
+| --- | ---: | ---: | ---: | ---: |
+| Frozen forecast | 6.297 | 8.950 | 0.000 | 0.008 |
+| Sliding CV | 1.938 | 4.236 | 1.108 | 0.285 |
+| Residual corrected | 2.239 | 4.113 | 1.554 | 0.517 |
+
+The residual corrector improves the frozen endpoint error but does not beat the sliding
+baseline on ADE; this mixed result is reported explicitly rather than overstated.
+
+## Static evaluation outputs
 
 Each evaluation directory contains `metrics.json`, `per_sample.csv`, `predictions.npz`,
 and `official_predictions.json`. The latter is the repository's order-preserving

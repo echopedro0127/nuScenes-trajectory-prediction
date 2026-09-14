@@ -12,6 +12,7 @@ Keep the uv cache on the project drive:
 
 ```powershell
 $env:UV_CACHE_DIR = "$PWD\.uv-cache"
+$env:CUBLAS_WORKSPACE_CONFIG = ":4096:8"
 uv sync --extra dev
 .\.venv\Scripts\python.exe -c "import torch, nuscenes; print(torch.__version__)"
 ```
