@@ -54,6 +54,8 @@ class _FakeNuScenes:
 
 
 class _FakePredictHelper:
+    future_offset = 0.0
+
     def __init__(self, nusc: _FakeNuScenes) -> None:
         self.nusc = nusc
 
@@ -89,7 +91,10 @@ class _FakePredictHelper:
         assert in_agent_frame is False
         steps = 11 if instance_token == "short-future" else 12
         return np.array(
-            [[10.0 + 0.5 * step, 5.0] for step in range(1, steps + 1)],
+            [
+                [10.0 + self.future_offset + 0.5 * step, 5.0]
+                for step in range(1, steps + 1)
+            ],
             dtype=np.float64,
         )
 
@@ -133,3 +138,21 @@ def test_extract_split_filters_incomplete_tracks_and_builds_local_float32_arrays
     assert arrays["sample_token"].tolist() == ["sample-a"]
     assert arrays["scene_name"].tolist() == ["name-scene-for-sample-a"]
     assert arrays["current_speed"].tolist() == [0.0]
+
+
+def test_extract_split_history_features_do_not_depend_on_future_input(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        splits,
+        "get_prediction_challenge_split",
+        lambda split, dataroot: ["good_sample-a"],
+    )
+    monkeypatch.setattr(prediction, "PredictHelper", _FakePredictHelper)
+
+    first, _ = extract_split(_FakeNuScenes(), "mini_train")
+    monkeypatch.setattr(_FakePredictHelper, "future_offset", 100.0)
+    second, _ = extract_split(_FakeNuScenes(), "mini_train")
+
+    np.testing.assert_array_equal(first["history_features"], second["history_features"])
+    assert not np.array_equal(first["future_xy"], second["future_xy"])
