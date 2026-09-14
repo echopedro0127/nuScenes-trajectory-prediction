@@ -10,6 +10,7 @@ def test_documented_entrypoints_exist() -> None:
         "train_corrector.py",
         "evaluate_online.py",
         "check_public_repo.py",
+        "render_cases.py",
         "run_smoke.ps1",
         "run_main.ps1",
     ]

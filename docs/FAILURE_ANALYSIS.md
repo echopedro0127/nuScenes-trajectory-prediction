@@ -28,6 +28,21 @@ joins rows by `instance_token`/`sample_token`; silently mismatched predictions a
 - `worst_cases.json`: deterministic union of the top-ADE and top-FDE cases, with the
   trajectory identifiers and descriptors needed for manual review.
 
+Render the first 20 cases as agent-frame PNGs with a verified best checkpoint:
+
+```powershell
+.\.venv\Scripts\python scripts\render_cases.py `
+  --data-config configs\data\trainval.yaml `
+  --split val `
+  --evaluation-dir outputs\trainval\gru_eval `
+  --model GRU --best --limit 20 `
+  --output-dir outputs\trainval\figures
+```
+
+Each image uses blue history, green ground truth, and a dashed model forecast. The output
+directory also contains `render_manifest.json`, including the cache hash and the list of
+rendered files. No map or sensor payload is copied into the figures.
+
 Tags are interpretable threshold groups (`straight`, `turn`, `high_curvature`, `low_speed`,
 `acceleration`, and `deceleration`). They are not mutually exclusive classes. Thresholds
 live in `configs/analysis/maneuvers.yaml` and must be versioned with the result.

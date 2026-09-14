@@ -1,1 +1,1 @@
-"""Interpretable motion analysis and failure reports."""
+"""Interpretable motion analysis, failure reports, and trajectory figures."""

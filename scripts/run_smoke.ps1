@@ -55,3 +55,4 @@ if (-not $SkipTraining) {
 }
 Invoke-Python @("scripts\evaluate_online.py", "--data-config", $DataConfig, "--split", "mini_val", "--base-predictions", $basePredictions, "--corrector-checkpoint", (Join-Path $correctorDir "best.pt"), "--output-dir", (Join-Path $outputRootPath "online"))
 Invoke-Python @("scripts\analyze_maneuvers.py", "--data-config", $DataConfig, "--split", "mini_val", "--evaluation-dir", (Join-Path $outputRootPath "gru_eval"), "--output-dir", (Join-Path $outputRootPath "analysis"))
+Invoke-Python @("scripts\render_cases.py", "--data-config", $DataConfig, "--split", "mini_val", "--evaluation-dir", (Join-Path $outputRootPath "gru_eval"), "--model", "GRU", "--best", "--output-dir", (Join-Path $outputRootPath "figures"))
