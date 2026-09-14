@@ -142,7 +142,7 @@ jobs:
         with: {python-version: "3.12"}
       - run: uv pip install --system -e ".[dev]"
       - run: uv pip install --system torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu
-      - run: uv pip install --system "nuscenes-devkit @ git+https://github.com/nutonomy/nuscenes-devkit.git@v1.2.0#subdirectory=setup"
+      - run: uv pip install --system nuscenes-devkit==1.2.0
       - run: python -m pytest -v
       - run: ruff check src scripts tests
       - run: python scripts/check_public_repo.py

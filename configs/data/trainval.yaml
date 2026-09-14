@@ -1,0 +1,7 @@
+version: v1.0-trainval
+dataroot: data/nuscenes
+splits: [train, train_val, val]
+history_seconds: 2.0
+future_seconds: 6.0
+frequency_hz: 2
+cache_root: data/cache/trainval

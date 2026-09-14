@@ -1,0 +1,3 @@
+model:
+  name: constant_velocity_heading
+  future_steps: 12

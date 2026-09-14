@@ -1,5 +1,4 @@
-from trajectory_prediction import __version__
+def test_package_exposes_version() -> None:
+    from trajectory_prediction import __version__
 
-
-def test_package_version() -> None:
     assert __version__ == "0.1.0"
