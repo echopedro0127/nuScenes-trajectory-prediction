@@ -20,6 +20,9 @@ and latency separately from the official static protocol.
 - [Project plan](PROJECT_PLAN.md)
 - [Approved technical design](docs/superpowers/specs/2026-09-13-nuscenes-trajectory-prediction-design.md)
 - [Implementation roadmap](docs/superpowers/plans/2026-09-13-project-roadmap.md)
+- [Data setup and licensing workflow](docs/DATA_SETUP.md)
+- [Reproducibility checklist](docs/REPRODUCIBILITY.md)
+- [Failure and maneuver analysis](docs/FAILURE_ANALYSIS.md)
 
 ## Data and licensing
 

@@ -12,11 +12,14 @@ FORBIDDEN_PREFIXES = ("data/", "outputs/", "checkpoints/")
 MODEL_SUFFIXES = (".pt", ".pth", ".ckpt", ".safetensors", ".onnx")
 ARCHIVE_SUFFIXES = (".zip", ".tgz", ".tar", ".tar.gz", ".rar", ".7z")
 SECRET_SUFFIXES = (".pem", ".key", ".p12", ".pfx")
+_USER_PATH = rb"/" + rb"Users" + rb"/"
+_WINDOWS_USER_PATH = rb"[A-Z]:\\" + rb"Users" + rb"\\"
+_HOME_PATH = rb"/" + rb"home" + rb"/"
 SECRET_PATTERNS = (
     re.compile(rb"(?i)\b(?:api[_-]?key|secret[_-]?key|access[_-]?token)\s*[:=]"),
     re.compile(rb"(?i)\bauthorization\s*:\s*bearer\s+[a-z0-9._~+/=-]{12,}"),
     re.compile(rb"-----BEGIN (?:[A-Z0-9 ]+ )?PRIVATE KEY-----"),
-    re.compile(rb"(?i)(?:[A-Z]:\\Users\\|/Users/|/home/)[^\r\n\"']+"),
+    re.compile(rb"(?i)(?:" + _WINDOWS_USER_PATH + b"|" + _USER_PATH + b"|" + _HOME_PATH + rb")[^\r\n\"']+"),
 )
 
 
