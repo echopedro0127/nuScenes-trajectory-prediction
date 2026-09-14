@@ -5,12 +5,13 @@ correction, and motion-conditioned analysis under the nuScenes prediction protoc
 
 ## Status
 
-The repository is under active development. Quantitative results will be published only
-after reproducible experiments on official scene-level splits. It contains no placeholder
-metrics or state-of-the-art claims.
+The metadata-only pipeline is implemented end to end: official scene-level splits,
+physics baselines, GRU/Transformer predictors, causal online correction, maneuver/failure
+analysis, and reproducible trajectory figures. It contains no placeholder metrics or
+state-of-the-art claims.
 
 The current static benchmark compares finite-difference constant velocity,
-constant-velocity-plus-heading, GRU, and lightweight Transformer predictors. The planned
+constant-velocity-plus-heading, GRU, and lightweight Transformer predictors. The
 supplementary contribution is causal online trajectory correction: reforecasting only with
 observations available at each 0.5-second update, and measuring correction gain, jitter,
 and latency separately from the official static protocol.
@@ -127,6 +128,15 @@ The supplementary causal online protocol reports 79,211 rolling update rows:
 
 The residual corrector improves the frozen endpoint error but does not beat the sliding
 baseline on ADE; this mixed result is reported explicitly rather than overstated.
+
+## Failure analysis and trajectory figures
+
+`run_main.ps1` also writes maneuver summaries and the 20 highest-error agent-frame
+figures under `outputs/trainval/analysis` and `outputs/trainval/figures`. Each PNG shows
+blue observed history, green ground truth, and the dashed model forecast; the accompanying
+`render_manifest.json` records the cache hash and verified checkpoint. Outputs stay ignored
+so the licensed nuScenes metadata and generated artifacts are never committed; rerun the
+documented command in [FAILURE_ANALYSIS.md](docs/FAILURE_ANALYSIS.md) to reproduce them.
 
 ## Static evaluation outputs
 
