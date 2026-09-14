@@ -76,6 +76,31 @@ to `scripts/build_readme_tables.py`, for example:
 
 ## Static evaluation outputs
 
+## Mini smoke results (not final benchmark claims)
+
+The first metadata-only run completed on `v1.0-mini` with 47 accepted `mini_val` agents.
+These numbers are a pipeline smoke test, not a substitute for the scene-level train /
+train_val / val experiment:
+
+| Model | ADE | FDE |
+| --- | ---: | ---: |
+| Finite-difference CV | 5.320 | 13.095 |
+| CV + heading | 5.450 | 13.285 |
+| GRU | 5.334 | 8.946 |
+| Lightweight Transformer | 3.677 | 7.826 |
+
+The causal online protocol on the same 47 agents reports rolling-row means:
+
+| Strategy | ADE | FDE | Jitter | p95 latency (ms) |
+| --- | ---: | ---: | ---: | ---: |
+| Frozen forecast | 7.239 | 8.946 | 0.000 | 0.011 |
+| Sliding CV | 2.203 | 5.005 | 1.019 | 0.522 |
+| Residual corrected | 3.366 | 5.156 | 1.587 | 0.889 |
+
+The complete generated tables, horizon breakdown, maneuver groups and provenance remain
+under ignored `outputs/mini/README_TABLES.md`. Re-run the smoke command after any code or
+configuration change instead of hand-editing these values.
+
 Each evaluation directory contains `metrics.json`, `per_sample.csv`, `predictions.npz`,
 and `official_predictions.json`. The latter is the repository's order-preserving
 `instance_token_sample_token` mapping with one deterministic mode and probability 1.0.
