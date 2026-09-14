@@ -1,0 +1,17 @@
+.venv/
+.worktrees/
+.uv-cache/
+.python/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+data/
+outputs/
+checkpoints/
+*.pt
+*.pth
+*.ckpt
+wandb/
+.env
