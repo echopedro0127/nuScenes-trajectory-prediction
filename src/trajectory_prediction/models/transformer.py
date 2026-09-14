@@ -2,6 +2,12 @@ import torch
 from torch import nn
 
 
+def _positive_int(name: str, value: object) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise ValueError(f"{name} must be a positive integer")
+    return value
+
+
 def _validate_inputs(
     features: torch.Tensor,
     mask: torch.Tensor,
@@ -41,6 +47,14 @@ class TransformerPredictor(nn.Module):
         max_history_steps: int = 5,
     ) -> None:
         super().__init__()
+        input_dim = _positive_int("input_dim", input_dim)
+        hidden_dim = _positive_int("hidden_dim", hidden_dim)
+        heads = _positive_int("heads", heads)
+        layers = _positive_int("layers", layers)
+        future_steps = _positive_int("future_steps", future_steps)
+        max_history_steps = _positive_int("max_history_steps", max_history_steps)
+        if hidden_dim % heads != 0:
+            raise ValueError("hidden_dim must be divisible by heads")
         self.embedding = nn.Linear(input_dim, hidden_dim)
         self.position = nn.Parameter(
             torch.zeros(1, max_history_steps, hidden_dim)

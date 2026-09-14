@@ -2,6 +2,12 @@ import torch
 from torch import nn
 
 
+def _positive_int(name: str, value: object) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise ValueError(f"{name} must be a positive integer")
+    return value
+
+
 def _validate_inputs(
     features: torch.Tensor,
     mask: torch.Tensor,
@@ -34,6 +40,10 @@ class GRUPredictor(nn.Module):
         future_steps: int,
     ) -> None:
         super().__init__()
+        input_dim = _positive_int("input_dim", input_dim)
+        hidden_dim = _positive_int("hidden_dim", hidden_dim)
+        layers = _positive_int("layers", layers)
+        future_steps = _positive_int("future_steps", future_steps)
         self.encoder = nn.GRU(
             input_dim,
             hidden_dim,

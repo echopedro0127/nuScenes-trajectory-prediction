@@ -9,6 +9,7 @@ from trajectory_prediction.models.gru import GRUPredictor
 from trajectory_prediction.models.transformer import TransformerPredictor
 
 ModelFactory = Callable[[], nn.Module]
+INVALID_DIMENSIONS = [True, False, 0, -1, 1.5]
 
 
 def _gru() -> GRUPredictor:
@@ -28,6 +29,65 @@ def _transformer() -> TransformerPredictor:
         layers=2,
         future_steps=12,
     )
+
+
+@pytest.mark.parametrize(
+    "field", ["input_dim", "hidden_dim", "layers", "future_steps"]
+)
+@pytest.mark.parametrize("value", INVALID_DIMENSIONS)
+def test_gru_rejects_invalid_constructor_dimensions(
+    field: str, value: bool | float
+) -> None:
+    config = {
+        "input_dim": 6,
+        "hidden_dim": 64,
+        "layers": 1,
+        "future_steps": 12,
+    }
+    config[field] = value
+
+    with pytest.raises(ValueError, match=f"{field} must be a positive integer"):
+        GRUPredictor(**config)
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "input_dim",
+        "hidden_dim",
+        "heads",
+        "layers",
+        "future_steps",
+        "max_history_steps",
+    ],
+)
+@pytest.mark.parametrize("value", INVALID_DIMENSIONS)
+def test_transformer_rejects_invalid_constructor_dimensions(
+    field: str, value: bool | float
+) -> None:
+    config = {
+        "input_dim": 6,
+        "hidden_dim": 128,
+        "heads": 4,
+        "layers": 2,
+        "future_steps": 12,
+        "max_history_steps": 5,
+    }
+    config[field] = value
+
+    with pytest.raises(ValueError, match=f"{field} must be a positive integer"):
+        TransformerPredictor(**config)
+
+
+def test_transformer_requires_hidden_dimension_divisible_by_heads() -> None:
+    with pytest.raises(ValueError, match="hidden_dim must be divisible by heads"):
+        TransformerPredictor(
+            input_dim=6,
+            hidden_dim=10,
+            heads=4,
+            layers=2,
+            future_steps=12,
+        )
 
 
 @pytest.mark.parametrize("model_factory", [_gru, _transformer])
