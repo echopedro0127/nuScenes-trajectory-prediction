@@ -1,0 +1,7 @@
+version: v1.0-mini
+dataroot: data/nuscenes
+splits: [mini_train, mini_val]
+history_seconds: 2.0
+future_seconds: 6.0
+frequency_hz: 2
+cache_root: data/cache/mini
