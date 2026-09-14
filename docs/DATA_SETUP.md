@@ -54,8 +54,10 @@ uv sync --extra dev
 ```
 
 The project pins `nuscenes-devkit==1.2.0` through PyPI-compatible dependency resolution.
-The tested GPU wheel is CUDA-enabled PyTorch; CPU execution remains supported for smoke
-tests and CI.
+The base dependency includes PyTorch 2.6 so a fresh checkout is importable. The tested
+GPU environment uses the CUDA 12.4 wheel; if `uv sync` selected a CPU wheel, reinstall the
+matching CUDA wheel from the official PyTorch index before training. CPU execution remains
+supported for smoke tests and CI.
 
 ## Prepare deterministic caches
 
