@@ -1,0 +1,14 @@
+model:
+  name: transformer
+  input_dim: 6
+  hidden_dim: 128
+  heads: 4
+  layers: 2
+  future_steps: 12
+training:
+  seed: 2027
+  epochs: 80
+  batch_size: 256
+  learning_rate: 0.0005
+  weight_decay: 0.0001
+  patience: 12
