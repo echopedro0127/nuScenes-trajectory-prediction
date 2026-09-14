@@ -68,7 +68,7 @@ def find_violations(root: Path, tracked_paths: Iterable[str], max_bytes: int = 1
 
 def _git_root() -> Path:
     result = subprocess.run(
-        ["git", "rev-parse", "--show-toplevel"],
+        ["git", "-c", "safe.directory=*", "rev-parse", "--show-toplevel"],
         check=True,
         capture_output=True,
         text=True,
@@ -78,7 +78,7 @@ def _git_root() -> Path:
 
 def _tracked_paths(root: Path) -> list[str]:
     result = subprocess.run(
-        ["git", "-C", str(root), "ls-files", "-z"],
+        ["git", "-c", "safe.directory=*", "-C", str(root), "ls-files", "-z"],
         check=True,
         capture_output=True,
     )
