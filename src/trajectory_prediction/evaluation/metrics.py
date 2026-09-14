@@ -22,7 +22,11 @@ def displacement_metrics(
 ) -> dict[str, torch.Tensor]:
     """Return per-sample displacement errors for single-mode trajectories."""
     _validate_trajectory_pair(prediction, target)
-    if not math.isfinite(miss_tolerance_m) or miss_tolerance_m <= 0:
+    if (
+        isinstance(miss_tolerance_m, bool)
+        or not math.isfinite(miss_tolerance_m)
+        or miss_tolerance_m <= 0
+    ):
         raise ValueError("miss_tolerance_m must be finite and positive")
 
     distance = torch.linalg.vector_norm(prediction - target, dim=-1)

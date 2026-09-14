@@ -80,3 +80,31 @@ def test_physics_baselines_reject_invalid_future_steps(
 def test_heading_baseline_rejects_non_vector_speed() -> None:
     with pytest.raises(ValueError, match=r"shape \[B\]"):
         constant_velocity_heading(torch.zeros(1, 1))
+
+
+@pytest.mark.parametrize("dtype", [torch.int64, torch.bool])
+def test_finite_difference_cv_rejects_non_floating_history(
+    dtype: torch.dtype,
+) -> None:
+    history = torch.zeros(1, 2, 2, dtype=dtype)
+
+    with pytest.raises(ValueError, match="floating-point"):
+        finite_difference_cv(history)
+
+
+@pytest.mark.parametrize("dtype", [torch.int64, torch.bool])
+def test_heading_baseline_rejects_non_floating_speed(dtype: torch.dtype) -> None:
+    speed = torch.zeros(1, dtype=dtype)
+
+    with pytest.raises(ValueError, match="floating-point"):
+        constant_velocity_heading(speed)
+
+
+def test_physics_baselines_reject_boolean_dt() -> None:
+    history = torch.zeros(1, 2, 2)
+    speed = torch.zeros(1)
+
+    with pytest.raises(ValueError, match="dt"):
+        finite_difference_cv(history, dt=True)
+    with pytest.raises(ValueError, match="dt"):
+        constant_velocity_heading(speed, dt=True)

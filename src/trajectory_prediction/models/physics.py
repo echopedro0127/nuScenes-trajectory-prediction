@@ -4,7 +4,7 @@ import torch
 
 
 def _validate_timing(dt: float, future_steps: int) -> None:
-    if not math.isfinite(dt) or dt <= 0:
+    if isinstance(dt, bool) or not math.isfinite(dt) or dt <= 0:
         raise ValueError("dt must be finite and positive")
     if (
         isinstance(future_steps, bool)
@@ -26,6 +26,8 @@ def finite_difference_cv(
         or history_xy.shape[2] != 2
     ):
         raise ValueError("history_xy must have shape [B, H>=2, 2]")
+    if not history_xy.is_floating_point():
+        raise ValueError("history_xy must be a floating-point tensor")
     _validate_timing(dt, future_steps)
 
     velocity = (history_xy[:, -1] - history_xy[:, -2]) / dt
@@ -46,6 +48,8 @@ def constant_velocity_heading(
     """Predict constant-speed motion along the agent frame's positive y-axis."""
     if speed.ndim != 1:
         raise ValueError("speed must have shape [B]")
+    if not speed.is_floating_point():
+        raise ValueError("speed must be a floating-point tensor")
     _validate_timing(dt, future_steps)
 
     times = torch.arange(
