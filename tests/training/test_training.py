@@ -94,6 +94,38 @@ def test_checkpoint_roundtrip_restores_model_optimizer_and_rng(tmp_path: Path) -
     assert restored_optimizer.param_groups[0]["lr"] == 1e-3
 
 
+def test_checkpoint_rejects_mismatched_run_metadata(tmp_path: Path) -> None:
+    model = GRUPredictor(6, 16, 1, 12)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    path = tmp_path / "checkpoint.pt"
+
+    save_checkpoint(path, model, optimizer, epoch=1, best_ade=1.0, metadata={"run": "a"})
+
+    with pytest.raises(ValueError, match="checkpoint metadata mismatch"):
+        load_checkpoint(
+            path,
+            model,
+            optimizer,
+            expected_metadata={"run": "b"},
+        )
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA is not available")
+def test_checkpoint_roundtrip_restores_cuda_rng(tmp_path: Path) -> None:
+    model = GRUPredictor(6, 16, 1, 12)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    path = tmp_path / "cuda-checkpoint.pt"
+
+    torch.cuda.manual_seed_all(123)
+    save_checkpoint(path, model, optimizer, epoch=1, best_ade=1.0)
+    expected = torch.rand(4, device="cuda")
+    torch.cuda.manual_seed_all(999)
+    load_checkpoint(path, model, optimizer)
+    actual = torch.rand(4, device="cuda")
+
+    torch.testing.assert_close(actual, expected)
+
+
 def test_checkpoint_atomic_failure_preserves_previous_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     model = GRUPredictor(6, 16, 1, 12)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
@@ -221,7 +253,7 @@ def test_fit_resume_restores_early_stopping_patience(
         patience=2,
         resume=True,
     )
-    assert [row["epoch"] for row in resumed] == [4]
+    assert resumed == []
 
 
 def test_empty_loader_has_clear_error() -> None:

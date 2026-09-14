@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import csv
 import math
+import os
+import tempfile
 from collections.abc import Iterable
 from pathlib import Path
 
@@ -90,6 +92,28 @@ def _train_epoch(
     return loss_total / samples, samples
 
 
+def _reconcile_metrics(path: Path, start_epoch: int) -> None:
+    if not path.exists():
+        return
+    with path.open(newline="", encoding="utf-8") as stream:
+        reader = csv.DictReader(stream)
+        rows = [row for row in reader if int(row["epoch"]) < start_epoch]
+        fieldnames = reader.fieldnames or []
+    descriptor, temporary_name = tempfile.mkstemp(
+        dir=path.parent, prefix=f".{path.name}.", suffix=".tmp"
+    )
+    os.close(descriptor)
+    temporary = Path(temporary_name)
+    try:
+        with temporary.open("w", newline="", encoding="utf-8") as stream:
+            writer = csv.DictWriter(stream, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
 def fit(
     model: torch.nn.Module,
     optimizer: torch.optim.Optimizer,
@@ -100,6 +124,7 @@ def fit(
     epochs: int,
     patience: int,
     resume: bool = False,
+    run_metadata: dict[str, object] | None = None,
 ) -> list[dict[str, float | int]]:
     if isinstance(epochs, bool) or not isinstance(epochs, int) or epochs <= 0:
         raise ValueError("epochs must be a positive integer")
@@ -113,14 +138,24 @@ def fit(
         last_path = output_dir / "last.pt"
         if not last_path.exists():
             raise FileNotFoundError(f"resume checkpoint not found: {last_path}")
-        state = load_checkpoint(last_path, model, optimizer, include_patience=True)
+        state = load_checkpoint(
+            last_path,
+            model,
+            optimizer,
+            include_patience=True,
+            expected_metadata=run_metadata,
+        )
         start_epoch = int(state["epoch"]) + 1
         best_ade = float(state["best_ade"])
         bad_epochs = int(state["bad_epochs"])
+    if bad_epochs >= patience:
+        return []
     if start_epoch > epochs:
         return []
 
     metrics_path = output_dir / "metrics.csv"
+    if resume:
+        _reconcile_metrics(metrics_path, start_epoch)
     fieldnames = ["epoch", "train_loss", "val_loss", "val_ade", "val_fde", "learning_rate"]
     write_header = not metrics_path.exists() or not resume
     history: list[dict[str, float | int]] = []
@@ -145,16 +180,28 @@ def fit(
                 bad_epochs = 0
             else:
                 bad_epochs += 1
-            writer.writerow(row)
-            stream.flush()
-            history.append(row)
             save_checkpoint(
-                output_dir / "last.pt", model, optimizer, epoch, best_ade, bad_epochs
+                output_dir / "last.pt",
+                model,
+                optimizer,
+                epoch,
+                best_ade,
+                bad_epochs,
+                metadata=run_metadata,
             )
             if improved:
                 save_checkpoint(
-                    output_dir / "best.pt", model, optimizer, epoch, best_ade, bad_epochs
+                    output_dir / "best.pt",
+                    model,
+                    optimizer,
+                    epoch,
+                    best_ade,
+                    bad_epochs,
+                    metadata=run_metadata,
                 )
+            writer.writerow(row)
+            stream.flush()
+            history.append(row)
             if bad_epochs >= patience:
                 break
     return history
