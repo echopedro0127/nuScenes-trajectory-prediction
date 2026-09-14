@@ -108,13 +108,15 @@ def fit(
     output_dir.mkdir(parents=True, exist_ok=True)
     start_epoch = 1
     best_ade = math.inf
+    bad_epochs = 0
     if resume:
         last_path = output_dir / "last.pt"
         if not last_path.exists():
             raise FileNotFoundError(f"resume checkpoint not found: {last_path}")
-        state = load_checkpoint(last_path, model, optimizer)
+        state = load_checkpoint(last_path, model, optimizer, include_patience=True)
         start_epoch = int(state["epoch"]) + 1
         best_ade = float(state["best_ade"])
+        bad_epochs = int(state["bad_epochs"])
     if start_epoch > epochs:
         return []
 
@@ -122,7 +124,6 @@ def fit(
     fieldnames = ["epoch", "train_loss", "val_loss", "val_ade", "val_fde", "learning_rate"]
     write_header = not metrics_path.exists() or not resume
     history: list[dict[str, float | int]] = []
-    bad_epochs = 0
     with metrics_path.open("a" if resume and metrics_path.exists() else "w", newline="", encoding="utf-8") as stream:
         writer = csv.DictWriter(stream, fieldnames=fieldnames)
         if write_header:
@@ -138,18 +139,24 @@ def fit(
                 "val_fde": float(validation["fde"]),
                 "learning_rate": float(optimizer.param_groups[0]["lr"]),
             }
-            writer.writerow(row)
-            stream.flush()
-            history.append(row)
-            save_checkpoint(output_dir / "last.pt", model, optimizer, epoch, best_ade)
-            if row["val_ade"] < best_ade:
+            improved = row["val_ade"] < best_ade
+            if improved:
                 best_ade = float(row["val_ade"])
-                save_checkpoint(output_dir / "best.pt", model, optimizer, epoch, best_ade)
                 bad_epochs = 0
             else:
                 bad_epochs += 1
-                if bad_epochs >= patience:
-                    break
+            writer.writerow(row)
+            stream.flush()
+            history.append(row)
+            save_checkpoint(
+                output_dir / "last.pt", model, optimizer, epoch, best_ade, bad_epochs
+            )
+            if improved:
+                save_checkpoint(
+                    output_dir / "best.pt", model, optimizer, epoch, best_ade, bad_epochs
+                )
+            if bad_epochs >= patience:
+                break
     return history
 
 

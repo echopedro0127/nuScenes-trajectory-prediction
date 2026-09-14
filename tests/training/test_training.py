@@ -158,6 +158,8 @@ def test_fit_writes_history_checkpoints_and_resumes(tmp_path: Path) -> None:
     assert (tmp_path / "last.pt").exists()
     assert (tmp_path / "best.pt").exists()
     assert history[-1]["epoch"] == 2
+    last_payload = torch.load(tmp_path / "last.pt", map_location="cpu", weights_only=False)
+    assert last_payload["best_ade"] == min(row["val_ade"] for row in history)
 
     resumed_model = GRUPredictor(6, 8, 1, 12)
     resumed_optimizer = torch.optim.Adam(resumed_model.parameters(), lr=1e-3)
@@ -175,6 +177,51 @@ def test_fit_writes_history_checkpoints_and_resumes(tmp_path: Path) -> None:
 
     assert [row["epoch"] for row in resumed] == [3]
     assert resumed[-1]["epoch"] == 3
+
+
+def test_fit_resume_restores_early_stopping_patience(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from trajectory_prediction.training import engine
+
+    model = GRUPredictor(6, 8, 1, 12)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    train_loader = val_loader = []
+    values = iter([1.0, 2.0, 2.0])
+    monkeypatch.setattr(engine, "_train_epoch", lambda *args: (0.0, 1))
+    monkeypatch.setattr(
+        engine,
+        "evaluate_epoch",
+        lambda *args: {"loss": 0.0, "ade": next(values), "fde": 0.0, "samples": 1},
+    )
+
+    first = engine.fit(
+        model,
+        optimizer,
+        train_loader,
+        val_loader,
+        device=torch.device("cpu"),
+        output_dir=tmp_path,
+        epochs=3,
+        patience=2,
+    )
+    assert [row["epoch"] for row in first] == [1, 2, 3]
+
+    resumed_model = GRUPredictor(6, 8, 1, 12)
+    resumed_optimizer = torch.optim.Adam(resumed_model.parameters(), lr=1e-3)
+    values = iter([2.0, 2.0])
+    resumed = engine.fit(
+        resumed_model,
+        resumed_optimizer,
+        train_loader,
+        val_loader,
+        device=torch.device("cpu"),
+        output_dir=tmp_path,
+        epochs=5,
+        patience=2,
+        resume=True,
+    )
+    assert [row["epoch"] for row in resumed] == [4]
 
 
 def test_empty_loader_has_clear_error() -> None:
