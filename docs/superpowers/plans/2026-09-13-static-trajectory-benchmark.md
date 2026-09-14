@@ -6,7 +6,7 @@
 
 **Architecture:** nuScenes metadata is converted once into a versioned NPZ cache containing agent-centric histories, future targets and provenance. Physics and learned models share a `predict(history_features, history_mask) -> [B, 12, 2]` contract, while evaluation operates on exported per-sample predictions and never depends on training internals.
 
-**Tech Stack:** Python 3.12, uv, PyTorch 2.6 CUDA 12.4 wheels, nuscenes-devkit 1.2.0 source install, NumPy 1.26, PyYAML, Matplotlib, pandas, pytest, Ruff.
+**Tech Stack:** Python 3.12, uv, PyTorch 2.6 CUDA 12.4 wheels, pinned nuscenes-devkit 1.2.0 install, NumPy 1.26, PyYAML, Matplotlib, pandas, pytest, Ruff.
 
 ---
 
@@ -136,7 +136,7 @@ uv python install 3.12
 uv venv --python 3.12
 uv pip install -e ".[dev]"
 uv pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cu124
-uv pip install "nuscenes-devkit @ git+https://github.com/nutonomy/nuscenes-devkit.git@v1.2.0#subdirectory=setup"
+uv pip install nuscenes-devkit==1.2.0
 ~~~
 
 Expected: `.venv\Scripts\python.exe` exists; no environment or package cache is created on C: by these commands.
