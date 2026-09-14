@@ -1,0 +1,4 @@
+low_speed_mps: 2.0
+turn_yaw_deg: 15.0
+high_curvature_yaw_deg: 45.0
+acceleration_mps2: 1.0
