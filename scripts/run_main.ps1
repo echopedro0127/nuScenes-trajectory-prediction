@@ -33,6 +33,9 @@ function Project-Path {
 $outputRootPath = Project-Path $OutputRoot
 $gruDir = Join-Path $outputRootPath "gru"
 $transformerDir = Join-Path $outputRootPath "transformer"
+$gruTrainEvalDir = Join-Path $outputRootPath "gru_train_eval"
+$gruTrainValEvalDir = Join-Path $outputRootPath "gru_train_val_eval"
+$gruValEvalDir = Join-Path $outputRootPath "gru_eval"
 Invoke-Python @("scripts\prepare_data.py", "--config", $DataConfig)
 if (-not $SkipTraining) {
     Invoke-Python @("scripts\train.py", "--data-config", $DataConfig, "--model-config", "configs\models\gru.yaml", "--train-split", "train", "--val-split", "train_val", "--history-seconds", "2.0", "--output-dir", $gruDir)
@@ -43,13 +46,17 @@ if (-not $SkipTraining) {
 
 Invoke-Python @("scripts\evaluate.py", "--data-config", $DataConfig, "--split", "val", "--model-config", "configs\models\cv.yaml", "--output-dir", (Join-Path $outputRootPath "cv"))
 Invoke-Python @("scripts\evaluate.py", "--data-config", $DataConfig, "--split", "val", "--model-config", "configs\models\cv_heading.yaml", "--output-dir", (Join-Path $outputRootPath "cv_heading"))
-Invoke-Python @("scripts\evaluate.py", "--data-config", $DataConfig, "--split", "val", "--model-config", "configs\models\gru.yaml", "--checkpoint", (Join-Path $gruDir "best.pt"), "--output-dir", (Join-Path $outputRootPath "gru_eval"))
+Invoke-Python @("scripts\evaluate.py", "--data-config", $DataConfig, "--split", "train", "--model-config", "configs\models\gru.yaml", "--checkpoint", (Join-Path $gruDir "best.pt"), "--output-dir", $gruTrainEvalDir)
+Invoke-Python @("scripts\evaluate.py", "--data-config", $DataConfig, "--split", "train_val", "--model-config", "configs\models\gru.yaml", "--checkpoint", (Join-Path $gruDir "best.pt"), "--output-dir", $gruTrainValEvalDir)
+Invoke-Python @("scripts\evaluate.py", "--data-config", $DataConfig, "--split", "val", "--model-config", "configs\models\gru.yaml", "--checkpoint", (Join-Path $gruDir "best.pt"), "--output-dir", $gruValEvalDir)
 Invoke-Python @("scripts\evaluate.py", "--data-config", $DataConfig, "--split", "val", "--model-config", "configs\models\transformer.yaml", "--checkpoint", (Join-Path $transformerDir "best.pt"), "--output-dir", (Join-Path $outputRootPath "transformer_eval"))
 
-$basePredictions = Join-Path $outputRootPath "gru_eval\predictions.npz"
+$trainBasePredictions = Join-Path $gruTrainEvalDir "predictions.npz"
+$trainValBasePredictions = Join-Path $gruTrainValEvalDir "predictions.npz"
+$basePredictions = Join-Path $gruValEvalDir "predictions.npz"
 $correctorDir = Join-Path $outputRootPath "corrector"
 if (-not $SkipTraining) {
-    Invoke-Python @("scripts\train_corrector.py", "--data-config", $DataConfig, "--split", "val", "--base-predictions", $basePredictions, "--output-dir", $correctorDir)
+    Invoke-Python @("scripts\train_corrector.py", "--data-config", $DataConfig, "--train-split", "train", "--val-split", "train_val", "--train-base-predictions", $trainBasePredictions, "--val-base-predictions", $trainValBasePredictions, "--output-dir", $correctorDir)
 } elseif (-not (Test-Path (Join-Path $correctorDir "best.pt"))) {
     throw "-SkipTraining requires best.pt in $correctorDir"
 }
