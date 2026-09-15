@@ -11,9 +11,12 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
       - name: Set up Python and uv
-        uses: astral-sh/setup-uv@v5
+        # Pin the action and disable its cache lifecycle. Windows runners can fail in
+        # setup-uv's post-job cache pruning even after every CI check succeeds.
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
         with:
           python-version: "3.12"
+          enable-cache: false
       - name: Install project and CPU PyTorch
         shell: pwsh
         run: |

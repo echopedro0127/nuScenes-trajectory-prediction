@@ -22,3 +22,8 @@ def test_orchestration_scripts_fail_fast_and_support_skip_training() -> None:
         content = (Path("scripts") / name).read_text(encoding="utf-8")
         assert "$ErrorActionPreference = \"Stop\"" in content
         assert "SkipTraining" in content
+
+
+def test_ci_disables_uv_cache_cleanup_on_windows() -> None:
+    content = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+    assert "enable-cache: false" in content
