@@ -86,6 +86,29 @@ def aggregate_metrics(rows: Iterable[Mapping[str, object]]) -> dict[str, float |
     }
 
 
+def validate_corrector_metadata(
+    metadata: Mapping[str, object],
+    data_config_sha256: str,
+    evaluation_split: str,
+) -> None:
+    """Reject checkpoints trained or selected on the split being evaluated."""
+    if not isinstance(metadata, Mapping):
+        raise TypeError("corrector checkpoint metadata must be a mapping")
+    if metadata.get("data_config_sha256") != data_config_sha256:
+        raise ValueError("corrector checkpoint data configuration mismatch")
+    train_split = metadata.get("train_split")
+    val_split = metadata.get("val_split")
+    same_split_validation = metadata.get("same_split_validation", False)
+    if not isinstance(train_split, str) or not isinstance(val_split, str):
+        raise TypeError("corrector checkpoint must record train_split and val_split")
+    if not train_split or not val_split:
+        raise ValueError("corrector checkpoint train and validation splits must be different")
+    if train_split == val_split and same_split_validation is not True:
+        raise ValueError("corrector checkpoint train and validation splits must be different")
+    if evaluation_split in {train_split, val_split}:
+        raise ValueError("corrector checkpoint split must differ from evaluation split")
+
+
 def _synchronize(device: torch.device) -> None:
     if device.type == "cuda":
         torch.cuda.synchronize(device)
@@ -242,6 +265,9 @@ def main(argv: list[str] | None = None) -> None:
         model_config = document.get("model", {})
         corrector = ResidualCorrector(**model_config)
         payload = torch.load(checkpoint_path, map_location=device, weights_only=False)
+        if not isinstance(payload, Mapping):
+            raise ValueError("corrector checkpoint payload must be a mapping")
+        validate_corrector_metadata(payload.get("metadata"), config_hash, args.split)
         corrector.load_state_dict(payload["model"] if isinstance(payload, Mapping) and "model" in payload else payload)
     frame = evaluate_arrays(prediction, arrays["future_xy"], arrays["history_xy"], corrector=corrector, device=device)
     thresholds_path = project_root / "configs/analysis/maneuvers.yaml"

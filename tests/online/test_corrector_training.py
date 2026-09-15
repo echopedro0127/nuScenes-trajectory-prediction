@@ -31,6 +31,10 @@ def test_corrector_rejects_equal_split_roles() -> None:
         validate_split_names("val", "val")
 
 
+def test_corrector_allows_explicit_train_selection_for_smoke() -> None:
+    validate_split_names("mini_train", "mini_train", allow_same=True)
+
+
 def test_online_evaluator_rejects_corrector_fit_on_eval_split() -> None:
     metadata = {
         "data_config_sha256": "config",
@@ -50,3 +54,14 @@ def test_online_evaluator_accepts_disjoint_corrector_splits() -> None:
     }
 
     validate_corrector_metadata(metadata, "config", "val")
+
+
+def test_online_evaluator_accepts_explicit_same_train_selection() -> None:
+    metadata = {
+        "data_config_sha256": "config",
+        "train_split": "mini_train",
+        "val_split": "mini_train",
+        "same_split_validation": True,
+    }
+
+    validate_corrector_metadata(metadata, "config", "mini_val")
