@@ -92,9 +92,9 @@ The causal online protocol on the same 47 agents reports rolling-row means:
 
 | Strategy | ADE | FDE | Jitter | p95 latency (ms) |
 | --- | ---: | ---: | ---: | ---: |
-| Frozen forecast | 7.239 | 8.946 | 0.000 | 0.011 |
-| Sliding CV | 2.203 | 5.005 | 1.019 | 0.522 |
-| Residual corrected | 3.366 | 5.156 | 1.587 | 0.889 |
+| Frozen forecast | 7.239 | 8.946 | 0.000 | 0.008 |
+| Sliding CV | 2.203 | 5.005 | 1.019 | 0.374 |
+| Residual corrected | 5.182 | 7.611 | 4.175 | 0.685 |
 
 The complete generated tables, horizon breakdown, maneuver groups and provenance remain
 under ignored `outputs/mini/README_TABLES.md`. Re-run the smoke command after any code or
@@ -122,12 +122,14 @@ The supplementary causal online protocol reports 79,211 rolling update rows:
 
 | Strategy | ADE | FDE | Jitter | p95 latency (ms) |
 | --- | ---: | ---: | ---: | ---: |
-| Frozen forecast | 6.297 | 8.950 | 0.000 | 0.008 |
-| Sliding CV | 1.938 | 4.236 | 1.108 | 0.285 |
-| Residual corrected | 2.239 | 4.113 | 1.554 | 0.517 |
+| Frozen forecast | 6.297 | 8.950 | 0.000 | 0.032 |
+| Sliding CV | 1.938 | 4.236 | 1.108 | 1.318 |
+| Residual corrected | 2.204 | 4.074 | 1.549 | 2.430 |
 
-The residual corrector improves the frozen endpoint error but does not beat the sliding
-baseline on ADE; this mixed result is reported explicitly rather than overstated.
+The residual corrector is trained on `train`, selected on `train_val`, and evaluated only
+on the locked `val` split. It improves frozen endpoint error but does not beat the sliding
+baseline on ADE; this mixed result is reported explicitly rather than overstated. The mini
+smoke run has no third split, so it selects on `mini_train` and remains a pipeline check.
 
 ## Failure analysis and trajectory figures
 

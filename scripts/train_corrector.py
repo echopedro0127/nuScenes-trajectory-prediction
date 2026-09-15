@@ -190,7 +190,7 @@ def main(argv: list[str] | None = None) -> None:
     train_scenes = set(train_arrays["scene_name"].tolist())
     val_scenes = set(val_arrays["scene_name"].tolist())
     overlap = train_scenes.intersection(val_scenes)
-    if overlap:
+    if overlap and not args.allow_same_split_validation:
         raise ValueError(f"train/validation scene overlap: {sorted(overlap)}")
 
     train_prediction_path = _resolve_path(args.train_base_predictions, project_root)

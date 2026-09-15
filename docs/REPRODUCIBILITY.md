@@ -34,6 +34,13 @@ Every training and evaluation command validates the split and configuration hash
 model execution. Preserve the resulting `metrics.json`, `per_sample.csv`, and
 `predictions.npz` together with the commit ID and model YAML used to create them.
 
+For the scene-level online experiment, generate GRU predictions for `train`, `train_val`,
+and `val`; train the residual corrector on `train`, select its checkpoint on `train_val`,
+and pass only the locked `val` prediction file to `evaluate_online.py`. The evaluator
+rejects a checkpoint whose training or selection split equals the requested evaluation
+split. The mini smoke configuration has only `mini_train` and `mini_val`, so its corrector
+selection explicitly reuses `mini_train`; treat those numbers as a pipeline check only.
+
 ## Verification gates
 
 Run these commands from the repository root before opening a pull request:

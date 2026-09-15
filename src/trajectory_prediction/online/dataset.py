@@ -50,6 +50,45 @@ class CorrectionDataset(Dataset):
         self.history = history.astype(np.float32, copy=True)
         self.update_step = update_step
         self.dt = float(dt)
+        self._features, self._mask, self._target_offset = self._build_cached_examples()
+
+    def _build_cached_examples(self) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        current = self.future[:, self.update_step - 1]
+        previous = (
+            self.history[:, -1]
+            if self.update_step == 1
+            else self.future[:, self.update_step - 2]
+        )
+        actual_velocity = (current - previous) / np.float32(self.dt)
+        base_previous = (
+            np.zeros((self.base.shape[0], 2), dtype=np.float32)
+            if self.update_step == 1
+            else self.base[:, self.update_step - 2]
+        )
+        base_velocity = (self.base[:, self.update_step - 1] - base_previous) / np.float32(self.dt)
+        position_residual = current - self.base[:, self.update_step - 1]
+        velocity_residual = actual_velocity - base_velocity
+        actual_heading = np.arctan2(actual_velocity[:, 1], actual_velocity[:, 0])
+        base_heading = np.arctan2(base_velocity[:, 1], base_velocity[:, 0])
+        heading_residual = (actual_heading - base_heading + np.pi) % (2.0 * np.pi) - np.pi
+
+        horizon_index = np.arange(12, dtype=np.float32)
+        remaining_fraction = (12.0 - horizon_index - 1.0) / 12.0
+        sample_count = self.base.shape[0]
+        features = np.empty((sample_count, 12, 8), dtype=np.float32)
+        features[:, :, :2] = self.base
+        features[:, :, 2:4] = position_residual[:, None, :]
+        features[:, :, 4:6] = velocity_residual[:, None, :]
+        features[:, :, 6] = heading_residual[:, None]
+        features[:, :, 7] = remaining_fraction[None, :]
+        mask = np.arange(12) >= self.update_step
+        features[:, ~mask] = 0.0
+        target_offset = self.future - self.base
+        return (
+            torch.from_numpy(features),
+            torch.from_numpy(np.broadcast_to(mask, (sample_count, 12)).copy()),
+            torch.from_numpy(target_offset),
+        )
 
     def __len__(self) -> int:
         return int(self.base.shape[0])
@@ -63,38 +102,10 @@ class CorrectionDataset(Dataset):
         if index < 0 or index >= len(self):
             raise IndexError("correction dataset index out of range")
 
-        base = self.base[index]
-        future = self.future[index]
-        history = self.history[index]
-        current = future[self.update_step - 1]
-        previous = history[-1] if self.update_step == 1 else future[self.update_step - 2]
-        actual_velocity = (current - previous) / np.float32(self.dt)
-        base_previous = np.zeros(2, dtype=np.float32) if self.update_step == 1 else base[self.update_step - 2]
-        base_velocity = (base[self.update_step - 1] - base_previous) / np.float32(self.dt)
-        position_residual = current - base[self.update_step - 1]
-        velocity_residual = actual_velocity - base_velocity
-        actual_heading = math.atan2(float(actual_velocity[1]), float(actual_velocity[0]))
-        base_heading = math.atan2(float(base_velocity[1]), float(base_velocity[0]))
-        heading_residual = (actual_heading - base_heading + math.pi) % (2.0 * math.pi) - math.pi
-
-        horizon_index = np.arange(12, dtype=np.float32)
-        remaining_fraction = (12.0 - horizon_index - 1.0) / 12.0
-        features = np.column_stack(
-            (
-                base,
-                np.broadcast_to(position_residual, (12, 2)),
-                np.broadcast_to(velocity_residual, (12, 2)),
-                np.full(12, heading_residual, dtype=np.float32),
-                remaining_fraction,
-            )
-        ).astype(np.float32, copy=False)
-        mask = np.arange(12) >= self.update_step
-        features[~mask] = 0.0
-        target_offset = future - base
         return {
-            "features": torch.from_numpy(features),
-            "mask": torch.from_numpy(mask),
-            "target_offset": torch.from_numpy(target_offset.astype(np.float32, copy=False)),
+            "features": self._features[index],
+            "mask": self._mask[index],
+            "target_offset": self._target_offset[index],
             "update_step": torch.tensor(self.update_step, dtype=torch.long),
             "index": torch.tensor(index, dtype=torch.long),
         }
