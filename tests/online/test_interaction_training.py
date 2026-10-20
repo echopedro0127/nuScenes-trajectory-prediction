@@ -68,6 +68,9 @@ def test_short_ablation_training_restores_suite_and_rejects_invalid_provenance(t
             torch.testing.assert_close(a, b)
     with pytest.raises(ValueError, match="overlap"):
         load_interaction_checkpoint(tmp_path / "best.pt", map_contract, neighbor_contract, ["c"], metadata["base_model"])
+    with pytest.raises(ValueError, match="base model"):
+        load_interaction_checkpoint(tmp_path / "best.pt", map_contract, neighbor_contract, ["heldout"],
+                                    {**metadata["base_model"], "checkpoint_sha256": "0" * 64})
     changed = deepcopy(neighbor_contract)
     changed["config"]["radius_m"] = 10
     with pytest.raises(ValueError, match="neighbor"):

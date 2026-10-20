@@ -116,3 +116,22 @@ def test_duplicate_sample_never_occupies_multiple_history_slots():
     view = data.query(observation(), "self", "scene", np.zeros(2), np.pi / 2)
     assert not view.mask[0, 0] and view.mask[0, 1]
     assert len(set(view.source_timestamp_us[0, view.mask[0]].tolist())) == int(view.mask[0].sum())
+
+
+
+@pytest.mark.parametrize("change", ["positions", "new_instance"])
+def test_future_annotation_perturbation_and_addition_do_not_change_current_view(change):
+    first, altered = index(), index()
+    for sample in ("5", "6"):
+        if change == "positions":
+            for annotation in altered.annotations[sample].values():
+                annotation["translation"] = [999999., -999999., 0]
+        else:
+            altered.categories["new"] = "vehicle.car"
+            altered.annotations[sample]["new"] = {"token": "future-new", "sample_token": sample,
+                "instance_token": "new", "translation": [0, 0, 0]}
+    a = first.query(observation(), "self", "scene", np.zeros(2), np.pi / 2)
+    b = altered.query(observation(), "self", "scene", np.zeros(2), np.pi / 2)
+    assert a.instance_tokens == b.instance_tokens
+    np.testing.assert_array_equal(a.features, b.features)
+    np.testing.assert_array_equal(a.source_timestamp_us, b.source_timestamp_us)
