@@ -1,4 +1,6 @@
 """Point-map conditioning with exact fallback to the original residual network."""
+import time
+
 import numpy as np
 import torch
 from torch import nn
@@ -42,15 +44,32 @@ class MapCorrector(nn.Module):
         return self.fallback(features, mask) + delta
 
 
-def predict_offsets(model, observation, base, map_view, device):
-    """Production prediction boundary; evaluation labels are never accepted."""
+def _sync(device):
+    if device.type == "cuda":
+        torch.cuda.synchronize(device)
+
+
+def profiled_predict_offsets(model, observation, base, map_view, device):
+    """Profile only cached-input preparation and encoder/head plus return transfer."""
+    _sync(device)
+    start = time.perf_counter_ns()
     features, mask = residual_features(observation, base)
+    inputs = (torch.from_numpy(features[None]).to(device),
+              torch.from_numpy(mask[None]).to(device),
+              torch.from_numpy(map_view.features[None].copy()).to(device),
+              torch.from_numpy(map_view.mask[None].copy()).to(device))
+    _sync(device)
+    prepared = time.perf_counter_ns()
     with torch.inference_mode():
-        offsets = model(torch.from_numpy(features[None]).to(device),
-                        torch.from_numpy(mask[None]).to(device),
-                        torch.from_numpy(map_view.features[None].copy()).to(device),
-                        torch.from_numpy(map_view.mask[None].copy()).to(device))
+        offsets = model(*inputs)
     result = offsets[0].detach().cpu().numpy()
+    _sync(device)
+    finished = time.perf_counter_ns()
     if not np.isfinite(result).all():
         raise ValueError("model produced nonfinite offsets")
-    return result
+    return result, {"feature_ms": (prepared - start) / 1e6, "encoder_head_ms": (finished - prepared) / 1e6}
+
+
+def predict_offsets(model, observation, base, map_view, device):
+    """Production prediction boundary; evaluation labels are never accepted."""
+    return profiled_predict_offsets(model, observation, base, map_view, device)[0]
