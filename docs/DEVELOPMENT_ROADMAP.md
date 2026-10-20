@@ -1,6 +1,6 @@
 # 因果在线轨迹预测：分阶段开发路线图
 
-更新日期：2026-10-20。当前状态：P4 全量上下文准备与三 seed mini 通路完成，正式 trainval 三 seed 训练进行中。
+更新日期：2026-10-20。当前状态：P4 全量三 seed 消融、场景统计与延迟报告已完成；地图有收益，邻车单独加入退化，下一阶段 P5。
 
 ## 开发入口
 
@@ -35,7 +35,7 @@ P4 见 [实施计划](superpowers/plans/2026-10-20-causal-context-phase4.md) 与
 | P1 | 时间戳输入选择、观测/标签边界 | 未来帧扰动不影响当前输入，旧 replay 回归通过 | 合成数据 | 已完成 |
 | P2 | 地图上下文与 Map-only Corrector | mini 通路、因果特征测试、无地图 fallback | 现有地图和 metadata | 已完成（工程） |
 | P3 | 邻车历史与 Map+Neighbors 融合 | 历史差分、邻车缺失/排序测试、四组消融通路 | 现有 metadata | 已完成（工程） |
-| P4 | trainval 消融与复现报告 | 相同样本/更新集合、多 seed、分组与延迟报告 | 现有 trainval metadata | 进行中 |
+| P4 | trainval 消融与复现报告 | 相同样本/更新集合、多 seed、分组与延迟报告 | 现有 trainval metadata | 已完成 |
 | P5 | mini Radar 与位置退化实验 | 同扰动对照、速度变换、回波覆盖和恢复时间 | 现有 mini sensor | 待开始 |
 | P6 | 质量门控与延迟/缺失实验 | 固定/学习门控对照，输入过旧时可解释 fallback | 前阶段数据 | 条件推进 |
 | P7 | Camera 或 LiDAR 小规模扩展 | 单模态消融、真实 encoder 耗时、覆盖率 | 现有 mini sensor | 可选 |
@@ -357,3 +357,33 @@ manifest、training.json、checkpoint metadata 与 summary.json 记录完整场�
 本地提交：ec1795a（设计/计划）、97d61fb（邻车）、720bfe3（缓存）、b15a520（融合模型）、
 f5346fc（训练）、a22c3d6（评估与历史校验修复）；验收记录与最后补充测试另作提交。
 下一阶段细化 P4 trainval 消融计划，先核验缓存/预测与资源预算，再进行多 seed 训练。
+
+
+## P4 完整 trainval 消融验收（2026-10-20）
+
+完整 train 25,560条/468场景、train_val 6,621条/176场景，seeds2027/2028/2029，
+七模型/seed；完整 val 7,201条/136场景、九策略，每策略79,211更新/seed，合计
+2,138,697条评估记录，失败0。已完成2000次配对场景bootstrap、分update/horizon/
+maneuver报告及相同256key、16warmup的同步GPU单次延迟测量。
+
+| 策略 | 三seed平均ADE/m | FDE/m | jitter/m |
+| --- | ---: | ---: | ---: |
+| sliding | 1.937731 | 4.235810 | 1.108377 |
+| original | 2.328250 | 4.240271 | 1.555624 |
+| map | 2.170413 | 3.983093 | 1.493390 |
+| neighbors | 2.334388 | 4.225095 | 1.562015 |
+| fusion | 2.184295 | 3.970296 | 1.495179 |
+
+map-original ADE差值=-0.157837m，场景95% CI=[-0.177403,-0.137334]m；
+map也优于对应total参数宽度对照。neighbors ADE与jitter退化，融合未显示优于map的
+ADE；全部learned模型ADE和jitter仍高于sliding。oracle与参数/预训练不匹配限制保留，
+val仍称历史固定验证集回归，不作为新盲测。
+
+402项pytest通过；Ruff、公开仓库扫描、diff检查通过。独立审查原缓存/训练身份问题
+已修复并回归；后续评估/统计的再次独立复核遇服务使用上限，具体范围已记录。
+完整配置、来源哈希、选模epoch、参数量、三seed标准差、置信区间、延迟、分组与命令
+见 [P4报告](CAUSAL_CONTEXT_PHASE4_RESULTS.md)。原始产物位于outputs/context/p4且未提交。
+
+本阶段代码提交：acff8bf（计划）、908c68e（全量准备）、a975c14（批量训练评估）、
+213cec6（场景统计与延迟）、ecdc794（源码变化回归）、67fc46e（延迟一致性）。
+下一阶段为P5 mini Radar与位置退化实验，继续时先细化独立实施计划。

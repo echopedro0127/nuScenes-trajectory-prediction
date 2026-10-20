@@ -33,18 +33,20 @@ python沿用../trajectory-mvp/.venv/Scripts/python.exe，PYTHONPATH=当前src，
 - [x] 短合成/mini运行，验证场景重叠拒绝、source/base/key不匹配拒绝、checkpoint恢复与每stage记录。
 - [x] 复用P3模型/parameter控制和metadata，批量切片训练，独立shuffle，20epoch/patience5上限。
 - [x] 每stage写日志和原子checkpoint，支持已完成stage的严格身份校验续跑，不丢失长实验进度。
-- [ ] 完整train/train_val三seeds2027/2028/2029训练，不读取val选模；记录配置hash，提交。
+- [x] 完整train/train_val三seeds2027/2028/2029训练，不读取val选模；记录配置hash，提交。
 
 ## Task 4：完整评估、延迟与场景统计
 
 文件analysis/context_ablation.py、scripts/evaluate_scaled_interactions.py、scripts/report_context_ablation.py；
 测试tests/analysis/test_context_ablation.py。
 - [x] 配对bootstrap测试常量delta、场景聚类、不匹配key/seed/漏行拒绝，seedstd口径明确。
-- [ ] 全val九策略批量评估；固定256key逐条warmup后分段计时，保存对应key和设备信息。
-- [ ] 完整三seed报告、分组、覆盖/fallback、95%场景CI、相对original与matched对照差值，提交。
+- [x] 全val九策略批量评估；固定256key逐条warmup后分段计时，保存对应key和设备信息。
+- [x] 完整三seed报告、分组、覆盖/fallback、95%场景CI、相对original与matched对照差值，提交。
 
 ## Task 5：验收与交付
 
-- [ ] 独立审查，修复后聚焦回归；全量pytest/Ruff/公开扫描/git diff --check。
-- [ ] docs记录完整样本数、场景、seeds、epoch、命令、hash、正负结果、CI及延迟范围。
-- [ ] P4满足实际运行条件后才标完成，保留工作分支，不提交data/outputs/checkpoint，不推送。
+- [x] 独立审查，修复后聚焦回归；全量pytest/Ruff/公开扫描/git diff --check。
+- [x] docs记录完整样本数、场景、seeds、epoch、命令、hash、正负结果、CI及延迟范围。
+- [x] P4满足实际运行条件后才标完成，保留工作分支，不提交data/outputs/checkpoint，不推送。
+
+实际结果、复现命令及第二次独立复核的服务限制见 ../../CAUSAL_CONTEXT_PHASE4_RESULTS.md。
