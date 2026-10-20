@@ -28,6 +28,12 @@ def test_scaled_training_selects_restores_and_reuses_only_matching_stages(tmp_pa
     for name in models:
         for a, b in zip(models[name].parameters(), again[name].parameters(), strict=True):
             torch.testing.assert_close(a, b)
+    original_hash = engine.sha256_file
+    with monkeypatch.context() as altered:
+        altered.setattr(engine, "sha256_file", lambda path: "0" * 64 if path.name == "corrector.py" else original_hash(path))
+        with pytest.raises(ValueError, match="identity"):
+            train_scaled_suite(train, selection, metadata, tmp_path, epochs=1, batch_size=16,
+                                hidden_dim=8, seed=7, patience=2, device=torch.device("cpu"))
     train.base = train.base.copy() + 12345
     with pytest.raises(ValueError, match="identity"):
         train_scaled_suite(train, selection, metadata, tmp_path, epochs=1, batch_size=16,
