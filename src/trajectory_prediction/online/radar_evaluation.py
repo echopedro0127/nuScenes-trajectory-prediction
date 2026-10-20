@@ -139,7 +139,8 @@ def write_radar_outputs(data, results, timings, root, provenance):
     pd.concat(condition_frames).to_csv(root / "by_condition.csv", index=False)
     for field, filename in (("update_step", "by_update.csv"), ("remaining_steps", "by_horizon.csv"), ("maneuver", "by_maneuver.csv")):
         pd.concat(grouped[field]).to_csv(root / filename, index=False)
-    recovery_table(results, arrays, provenance["seed"]).to_csv(root / "recovery.csv", index=False)
+    recovery_keys = {name: arrays[name][data.sample_indices] for name in ("instance_token", "sample_token", "scene_name")}
+    recovery_table(results, recovery_keys, provenance["seed"]).to_csv(root / "recovery.csv", index=False)
     files = ("per_update.csv.gz", "scene_stats.csv", "by_condition.csv", "by_update.csv", "by_horizon.csv", "by_maneuver.csv", "recovery.csv")
     summary = {"provenance": provenance, "sample_count": len(data.sample_indices), "updates_per_condition_strategy": len(data.sample_indices) * 11,
         "all_condition_updates_per_strategy": data.size, "row_count": data.size * 6, "failure_count": 0,

@@ -37,3 +37,18 @@ def test_recovery_requires_two_steps_and_preserves_censoring():
     assert not table.iloc[1].recovered and np.isnan(table.iloc[1].recovery_seconds)
     assert table.iloc[1].censor_seconds == 2
     assert table.iloc[2].recovery_seconds == 0
+
+
+def test_subset_recovery_keeps_actual_sample_identity(tmp_path):
+    import pandas as pd
+
+    from trajectory_prediction.online.radar_evaluation import STRATEGIES, write_radar_outputs
+    arrays, cache, base = data_fixture()
+    cache["timestamp_us"] = np.tile(2000000 + np.arange(1, 12) * 500000, (3, 1))
+    cache["source_us"] = np.broadcast_to(cache["timestamp_us"], (5, 3, 11)).copy()
+    cache["point_count"] = np.ones((5, 3, 11), np.int32)
+    cache["fresh"] = np.ones((5, 3, 11), bool)
+    data = RadarDataset(arrays, cache, base, sample_indices=[2])
+    values = {strategy: np.zeros((5, 1, 11, 3)) for strategy in STRATEGIES}
+    write_radar_outputs(data, values, dict.fromkeys(STRATEGIES, 1.), tmp_path, {"seed": 2027})
+    assert set(pd.read_csv(tmp_path / "recovery.csv").sample_token) == {"s2"}
