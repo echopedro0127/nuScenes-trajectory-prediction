@@ -40,7 +40,9 @@ def test_all_strategies_keep_rows_and_real_map_missing_fallback(tmp_path):
     np.testing.assert_array_equal(original[["ade", "fde", "jitter"]], mapped[["ade", "fde", "jitter"]])
     assert mapped.fallback.all()
     assert not mapped.map_covered.any()
-    write_context_outputs(frame, tmp_path, {"purpose": "test"})
+    summary = write_context_outputs(frame, tmp_path, {"purpose": "test"})
+    assert summary["strategies"]["map_corrected"]["update_count"] == 11
+    assert summary["strategies"]["map_corrected"]["sample_count"] == 1
     assert (tmp_path / "summary.json").exists()
     assert (tmp_path / "by_update.csv").exists()
     assert (tmp_path / "by_horizon.csv").exists()

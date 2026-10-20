@@ -40,13 +40,14 @@ def test_masked_map_padding_and_past_horizon_do_not_change_predictions():
     features, mask = torch.randn(1, 12, 8), torch.arange(12)[None] >= 3
     points, valid = torch.randn(1, 2, 3, 4), torch.zeros(1, 2, 3, dtype=torch.bool)
     valid[0, 0, 0] = True
+    torch.nn.init.constant_(model.head[-1].weight, 0.1)
     first = model(features, mask, points, valid)
     changed = points.clone()
     changed[~valid] = 99999
     torch.testing.assert_close(first, model(features, mask, changed, valid))
     assert torch.count_nonzero(first[:, :3]) == 0
     first.sum().backward()
-    assert any(p.grad is not None for p in model.encoder.parameters())
+    assert any(p.grad is not None and torch.count_nonzero(p.grad) > 0 for p in model.encoder.parameters())
     assert all(p.grad is None for p in model.fallback.parameters())
 
 

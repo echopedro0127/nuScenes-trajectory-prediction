@@ -1,6 +1,7 @@
 """Prepare and validate map context with keys and source provenance."""
 import argparse
 import json
+import re
 import time
 from dataclasses import asdict
 from pathlib import Path
@@ -29,9 +30,21 @@ def context_contract(arrays, manifest, index, config):
             "time_policy": "fixed_2hz_11_updates"}
 
 
-def load_predictions(path, arrays):
+def load_predictions(path, arrays, contract=None):
     path = Path(path)
     sidecar = path.parent / "per_sample.csv"
+    metrics_path = path.parent / "metrics.json"
+    provenance = json.loads(metrics_path.read_text(encoding="utf-8")).get("provenance", {})
+    if provenance.get("model_name") != "gru" or provenance.get("history_seconds") != 2.0 or provenance.get("history_steps") != 5:
+        raise ValueError("base predictions require fixed GRU with two-second history provenance")
+    identity = {name: provenance.get(name) for name in ("model_name", "checkpoint_sha256",
+        "model_config_sha256", "data_config_sha256", "history_seconds", "history_steps")}
+    for name in ("checkpoint_sha256", "model_config_sha256", "data_config_sha256"):
+        if not isinstance(identity[name], str) or not re.fullmatch(r"[0-9a-f]{64}", identity[name]):
+            raise ValueError("fixed GRU provenance requires model/config hashes")
+    if contract is not None and (provenance.get("split") != contract["split"] or
+                                 provenance.get("data_config_sha256") != contract["preprocessing_sha256"]):
+        raise ValueError("base prediction split/config provenance mismatch")
     keys = pd.read_csv(sidecar, dtype=str, keep_default_na=False)
     for name in IDENTIFIERS:
         if name not in keys or keys[name].tolist() != arrays[name].tolist():
@@ -42,7 +55,9 @@ def load_predictions(path, arrays):
             raise ValueError("base prediction target/cache mismatch")
     if prediction.shape != arrays["future_xy"].shape or not np.issubdtype(prediction.dtype, np.floating) or not np.isfinite(prediction).all():
         raise ValueError("invalid base prediction")
-    return prediction.astype(np.float32), {"npz_sha256": sha256_file(path), "keys_sha256": sha256_file(sidecar)}
+    return prediction.astype(np.float32), {"npz_sha256": sha256_file(path),
+        "keys_sha256": sha256_file(sidecar), "metrics_sha256": sha256_file(metrics_path),
+        "model_identity": identity}
 
 
 def load_bundle(trajectory_root, context_root, split, dataroot, config):

@@ -109,6 +109,8 @@ def write_context_outputs(frame, output_dir, provenance):
     summaries = {}
     for strategy, group in frame.groupby("strategy"):
         summaries[strategy] = aggregate_metrics(group.to_dict(orient="records"))
+        summaries[strategy]["update_count"] = summaries[strategy].pop("sample_count")
+        summaries[strategy]["sample_count"] = int(group.sample_index.nunique())
         for name in ("feature_ms", "encoder_head_ms", "cached_replay_prepare_ms"):
             summaries[strategy][name + "_p50"] = float(np.percentile(group[name], 50))
             summaries[strategy][name + "_p95"] = float(np.percentile(group[name], 95))
@@ -144,8 +146,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
     arrays, context, manifest = load_bundle(args.trajectory_cache, args.context_cache, args.split,
                                            args.dataroot, MapConfig(**load_yaml(args.config)))
-    base, prediction_hashes = load_predictions(args.base_predictions, arrays)
-    model, checkpoint = load_map_checkpoint(args.checkpoint, manifest["contract"], arrays["scene_name"].tolist())
+    base, prediction_hashes = load_predictions(args.base_predictions, arrays, manifest["contract"])
+    model, checkpoint = load_map_checkpoint(args.checkpoint, manifest["contract"],
+        arrays["scene_name"].tolist(), expected_base_identity=prediction_hashes["model_identity"])
     device = choose_device(args.device)
     frame = evaluate_context_arrays(arrays, context, base, model, device,
                                      thresholds=load_yaml(args.maneuver_config))

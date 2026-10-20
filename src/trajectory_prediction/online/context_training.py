@@ -2,6 +2,7 @@
 import argparse
 import json
 import math
+import re
 from copy import deepcopy
 from pathlib import Path
 
@@ -46,18 +47,50 @@ def validate_scene_metadata(metadata):
         partitions.append(set(scenes))
     if partitions[0] & partitions[1]:
         raise ValueError("train/selection scene overlap")
+    def require_hash(value):
+        if not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{64}", value) is None:
+            raise ValueError("checkpoint missing valid source artifact hash")
+
+    identity = metadata.get("base_model", {})
+    if identity.get("model_name") != "gru" or identity.get("history_seconds") != 2.0 or identity.get("history_steps") != 5:
+        raise ValueError("checkpoint requires fixed GRU base model identity")
+    for field in ("checkpoint_sha256", "model_config_sha256", "data_config_sha256"):
+        require_hash(identity.get(field))
+    splits = []
     for field in ("train_provenance", "selection_provenance"):
         provenance = metadata.get(field, {})
-        if not provenance.get("context_sha256") or not provenance.get("base", {}).get("npz_sha256"):
-            raise ValueError("checkpoint missing source artifact hashes")
+        require_hash(provenance.get("context_sha256"))
+        base = provenance.get("base", {})
+        for name in ("npz_sha256", "keys_sha256", "metrics_sha256"):
+            require_hash(base.get(name))
+        if base.get("model_identity") != identity:
+            raise ValueError("checkpoint base model provenance mismatch")
+        contract = provenance.get("contract")
+        if not isinstance(contract, dict) or contract.get("schema_version") != 1 or shared_contract(contract) != metadata.get("shared_contract"):
+            raise ValueError("checkpoint stored source contract mismatch")
+        for name in ("keys_sha256", "trajectory_sha256", "preprocessing_sha256"):
+            require_hash(contract.get(name))
+        if contract["preprocessing_sha256"] != identity["data_config_sha256"]:
+            raise ValueError("checkpoint base preprocessing mismatch")
+        source = contract.get("source")
+        if not isinstance(source, dict) or not source:
+            raise ValueError("checkpoint missing source files")
+        for value in source.values():
+            require_hash(value)
+        MapConfig(**contract["config"])
+        splits.append(contract.get("split"))
+    if tuple(splits) not in (("mini_train", "mini_train"), ("train", "train_val")):
+        raise ValueError("checkpoint train/selection split mismatch")
 
 
-def load_map_checkpoint(path, contract, evaluation_scenes):
+def load_map_checkpoint(path, contract, evaluation_scenes, expected_base_identity=None):
     payload = torch.load(path, map_location="cpu", weights_only=True)
     metadata = payload.get("metadata", {})
     if payload.get("checkpoint_schema") != 1 or metadata.get("shared_contract") != shared_contract(contract):
         raise ValueError("checkpoint context contract mismatch")
     validate_scene_metadata(metadata)
+    if expected_base_identity is not None and metadata.get("base_model") != expected_base_identity:
+        raise ValueError("checkpoint base model identity mismatch")
     if set(evaluation_scenes) & set(metadata["train_scenes"] + metadata["selection_scenes"]):
         raise ValueError("evaluation scene overlap with training or selection")
     dims = metadata["model_config"]
@@ -172,7 +205,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     config = MapConfig(**load_yaml(args.config))
     arrays, context, manifest = load_bundle(args.trajectory_cache, args.context_cache, args.split, args.dataroot, config)
-    base, base_hashes = load_predictions(args.base_predictions, arrays)
+    base, base_hashes = load_predictions(args.base_predictions, arrays, manifest["contract"])
     if args.split == "mini_train":
         if any((args.selection_trajectory_cache, args.selection_context_cache, args.selection_base_predictions, args.selection_split)):
             raise ValueError("mini selection must be an internal scene partition of mini_train")
@@ -185,13 +218,16 @@ def main(argv=None):
             raise ValueError("train requires separate train_val selection caches and predictions")
         val_arrays, val_context, val_manifest = load_bundle(args.selection_trajectory_cache,
             args.selection_context_cache, args.selection_split, args.dataroot, config)
-        val_base, val_hashes = load_predictions(args.selection_base_predictions, val_arrays)
+        val_base, val_hashes = load_predictions(args.selection_base_predictions, val_arrays, val_manifest["contract"])
         if shared_contract(manifest["contract"]) != shared_contract(val_manifest["contract"]):
             raise ValueError("train/selection context contract mismatch")
         train_scenes = sorted(set(arrays["scene_name"].tolist()))
         selection_scenes = sorted(set(val_arrays["scene_name"].tolist()))
         train_indices, val_indices = list(range(len(base))), list(range(len(val_base)))
+    if base_hashes["model_identity"] != val_hashes["model_identity"]:
+        raise ValueError("train/selection base model identity mismatch")
     metadata = {"shared_contract": shared_contract(manifest["contract"]),
+        "base_model": base_hashes["model_identity"],
         "train_scenes": train_scenes, "selection_scenes": selection_scenes,
         "train_scenes_sha256": digest_json(train_scenes), "selection_scenes_sha256": digest_json(selection_scenes),
         "train_provenance": {"context_sha256": manifest["npz_sha256"], "contract": manifest["contract"], "base": base_hashes},
