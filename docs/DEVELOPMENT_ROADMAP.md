@@ -1,6 +1,6 @@
 # 因果在线轨迹预测：分阶段开发路线图
 
-更新日期：2026-10-20。当前状态：P2 Map-only 工程通路已完成并验收；mini smoke 暂未显示收益，下一阶段为 P3 Neighbors。
+更新日期：2026-10-20。当前状态：P3 Neighbors/融合工程通路已完成；mini smoke 未见稳定上下文收益，下一阶段为 P4 trainval 消融。
 
 ## 开发入口
 
@@ -8,7 +8,7 @@
 - 开发分支：`feature/causal-context-online`。
 - 工作目录：仓库根目录下 `.worktrees/causal-context-online`。
 - 根目录仍使用 `local/resume-bullets`；简历文档和之前的本地实验提案保留原处。
-- P0–P2 的文档、代码与验收记录保留在该开发分支；P2 仅做 mini smoke 训练，不推送远程。
+- P0–P3 的文档、代码与验收记录保留在该开发分支；P2/P3 仅做 mini smoke 训练，不推送远程。
 
 进入开发目录：
 
@@ -22,7 +22,8 @@ git branch --show-current
 
 设计见 [技术设计](superpowers/specs/2026-10-20-causal-context-online-design.md)；
 已执行 [P1 实施计划](superpowers/plans/2026-10-20-causal-context-phase1.md) 与
-[P2 实施计划](superpowers/plans/2026-10-20-causal-context-phase2.md)。
+[P2 实施计划](superpowers/plans/2026-10-20-causal-context-phase2.md) 与
+[P3 实施计划](superpowers/plans/2026-10-20-causal-context-phase3.md)。
 
 ## 阶段及验收
 
@@ -31,7 +32,7 @@ git branch --show-current
 | P0 | 分支、worktree、设计、计划、基线验证 | 开发文档可执行，原有测试通过 | 不需要新数据 | 已完成 |
 | P1 | 时间戳输入选择、观测/标签边界 | 未来帧扰动不影响当前输入，旧 replay 回归通过 | 合成数据 | 已完成 |
 | P2 | 地图上下文与 Map-only Corrector | mini 通路、因果特征测试、无地图 fallback | 现有地图和 metadata | 已完成（工程） |
-| P3 | 邻车历史与 Map+Neighbors 融合 | 历史差分、邻车缺失/排序测试、四组消融通路 | 现有 metadata | 待开始 |
+| P3 | 邻车历史与 Map+Neighbors 融合 | 历史差分、邻车缺失/排序测试、四组消融通路 | 现有 metadata | 已完成（工程） |
 | P4 | trainval 消融与复现报告 | 相同样本/更新集合、多 seed、分组与延迟报告 | 现有 trainval metadata | 待开始 |
 | P5 | mini Radar 与位置退化实验 | 同扰动对照、速度变换、回波覆盖和恢复时间 | 现有 mini sensor | 待开始 |
 | P6 | 质量门控与延迟/缺失实验 | 固定/学习门控对照，输入过旧时可解释 fallback | 前阶段数据 | 条件推进 |
@@ -118,8 +119,9 @@ P4 的开发/选模使用 train_val；val 曾经报告过结果，后续在相�
 - [x] 技术设计、路线图与 P1 实施计划已编写。
 - [x] P1：实现并验收时间戳选择和观测/标签接口。
 - [x] P2：完成 Map-only cache、训练、evaluator 和 mini smoke 工程验收。
+- [x] P3：完成邻车历史、融合/参数量对照、九策略 evaluator 与 mini smoke 工程验收。
 
-下一次开发从细化 P3 Neighbors 实施计划开始。
+下一次开发从细化 P4 trainval 消融实施计划开始。
 
 ## P1 验收记录（2026-10-20）
 
@@ -241,3 +243,115 @@ update/horizon/maneuver 分组 CSV 保存在 mini-val-evaluation 目录。数据
 本地提交：8779f32（设计/计划）、e658b8c（地图）、0548a6d（缓存）、a6f8438（模型）、
 63421fe（训练）、117cb90（评估）、0aa3190（来源校验修复）；本文验收记录另作 docs 提交。
 下一阶段为 P3 Neighbors，不直接跳到全模态或 trainval sensor 训练。
+
+## P3 验收记录（2026-10-20）
+
+Neighbors 与 Map+Neighbors 的工程通路完成，见 [P3 设计](superpowers/specs/2026-10-20-causal-context-phase3-design.md)
+与 [P3 计划](superpowers/plans/2026-10-20-causal-context-phase3.md)。本阶段新增独立模块/CLI，
+P1/P2 代码、旧 trajectory cache schema 与历史 README 指标保持原样。
+
+- 邻车来自当前已可用的场景 annotation，类别固定为 vehicle.*（含 cycle）与
+  human.pedestrian.*；排除目标，按当前距离/token 选最多 8 个，不沿用已消失对象。
+- 5 个历史槽覆盖过去 2 秒，历史 source 不晚于槽时间、available 不晚于当前时间，
+  每槽最大 age 0.5 秒，重复 sample 只保留最新槽；不读取未来 pose 或插值。
+- rel_xy 相对目标当前观测、速度仅为邻车 anchor frame 后向差分，使用真实时间差。
+  position/velocity masks、类别 onehot、source/available 时间分开记录。MLP 另编码
+  velocity validity 与 age；缺失模态/全缺失 fallback 经过非零 head 测试。
+- 独立 neighbor archive 绑定配置、类别/instance/annotation/sample/scene/log/map 来源、
+  P2 map archive/contract、原 trajectory 与 token 顺序；加载拒绝错来源、错 split/key、
+  checksum、历史槽过旧及不符真实差分的 velocity。
+- 共用原架构 Corrector 冻结对照，独立训练 Map-only、Neighbors-only、融合 head；
+  各自增加原 ResidualCorrector 宽网络参数量对照，记录 total/trainable 参数。
+- checkpoint 校验固定 GRU 身份、map/neighbor 合同、场景哈希及训练/选模场景隔离；
+  记录每个 stage 的 best_epoch/completed_epochs。此 suite 是冻结评估产物，不支持 resume。
+- 九策略有完全相同的 instance/sample/update 集合，输出 per-update 与 update/horizon/
+  maneuver 分组、coverage/fallback、历史/速度有效率、frame age 和分段缓存路径计时。
+
+本轮新增 **36 项行为测试**（neighbors 16、neighbor cache 8、model 8、training 1、
+evaluator 3），全量由 P2 的 339 项增至 **375 passed**。覆盖未来 annotation 新增/删除/
+扰动不变性、真实时间差、方向、target 排除、类别、radius/排序、history/velocity masks、
+延迟/过旧、缓存/来源拒绝、非零梯度、实际 evaluator 单模态缺失与全缺失、九策略同 key。
+Ruff、公开仓库扫描、`git diff --check` 通过。独立审查发现历史槽 age 校验与 evaluator
+非空邻车测试覆盖不足，均已修复并复审；无遗留重要问题。
+
+### mini smoke 与结果
+
+固定 seed=2027，CUDA，7 个 learned stage 各 2 epoch，场景划分延续 P2：6 个训练场景
+（4499 updates），scene-1094/scene-1100 两个选模场景（1771 updates）。本次每个 stage
+均在第 2 epoch 选中 checkpoint。不同 stage 重置 seed，并使用独立固定 DataLoader
+生成器，使 batch 顺序一致。固定历史 GRU 不重新训练，其历史训练/选模来源被继承，
+mini_val 不参与 P3 选模，不能把这次运行称为新的盲测。
+
+- mini_train：570 条轨迹、6270 次更新，5768 次有邻车；准备约 12.36 s。
+- mini_val：47 条轨迹、517 次更新，500 次有邻车（96.7118%）；准备约 0.89 s。
+- mini_val 地图覆盖 100%，融合至少一模态覆盖 100%；Neighbors-only 的 17 次无邻车
+  update 严格回退原 Corrector，融合 fallback=0，无失败。9 策略各 517 行，共 4653 行。
+- 共选择 4000 个邻车实例/update，历史有效点 15252/20000（76.26%），速度有效点
+  10846/15252（71.11%）；当前邻车 frame age p50=99798 us，p95=499582.1 us。
+- 原 Corrector 与各个模型均在本次同一场景/更新集合重跑，不直接套用 P2 历史数值。
+
+| 策略 | ADE (m) | FDE (m) | jitter (m) |
+| --- | ---: | ---: | ---: |
+| frozen | 7.239052 | 8.946203 | 0.000000 |
+| sliding | 2.203285 | 5.005146 | 1.018701 |
+| original | 7.513973 | 8.736928 | 2.392542 |
+| map | 8.191405 | 9.166367 | 3.084374 |
+| neighbors | 7.684330 | 8.793473 | 2.917715 |
+| fusion | 7.638667 | 8.679637 | 2.903470 |
+| matched_map | 6.602393 | 7.813867 | 4.153845 |
+| matched_neighbors | 6.573249 | 7.791869 | 4.403310 |
+| matched_fusion | 5.975780 | 6.921620 | 4.639333 |
+
+本次上下文未显示稳定收益：融合 ADE 高于原 Corrector，虽 FDE 略低，但 jitter 更高；
+宽网络对照 ADE 更低而 jitter 较高。2 epoch、单 seed、mini 场景结果只验证通路，不能
+用于声称上下文有效或据此调 mini_val。正式 train/train_val 开发、多 seed、场景级置信
+区间、充分训练及相同样本消融仍属 P4。
+
+| 模型 | total 参数 | trainable 参数 | 与对应 context total 差异 |
+| --- | ---: | ---: | ---: |
+| original | 4866 | 4866 | — |
+| map | 14212 | 9346 | — |
+| matched_map | 14127 | 14127 | 0.5981% |
+| neighbors | 14468 | 9602 | — |
+| matched_neighbors | 14366 | 14366 | 0.7050% |
+| fusion | 23108 | 18242 | — |
+| matched_fusion | 23070 | 23070 | 0.1644% |
+
+宽度对照匹配 total 参数，context 模型的 common fallback 冻结、宽网络全部可训练。
+因此这不是 trainable 参数或总训练计算量匹配：context 还继承原 Corrector 的预训练。
+两项差异明确保留，不把宽网络结果误写成纯上下文增益的因果归因。
+
+计时是预缓存输入路径，包含 replay label snapshot、feature/transfer、encoder/head 与
+返回搬运；CUDA 同步但无 warmup。不含 metadata 磁盘读取/索引构建，不代表 sensor
+端到端性能。annotation neighbor 与 target 位置均为 oracle，vehicle/cycle 共用一类；
+缺失 mask 只表达已定义窗口内的可用性，不代表检测准确率。
+
+### 复现与来源
+
+```powershell
+$python = (Resolve-Path ../trajectory-mvp/.venv/Scripts/python.exe).Path
+$env:PYTHONPATH = Join-Path (Get-Location) 'src'
+& $python scripts/prepare_neighbors.py --trajectory-cache ../../data/cache/mini/mini_train --map-cache outputs/context/p2/mini-train --split mini_train --dataroot ../../data/nuscenes --output-dir outputs/context/p3/mini-train
+& $python scripts/prepare_neighbors.py --trajectory-cache ../../data/cache/mini/mini_val --map-cache outputs/context/p2/mini-val --split mini_val --dataroot ../../data/nuscenes --output-dir outputs/context/p3/mini-val
+& $python scripts/train_interaction_corrector.py --trajectory-cache ../../data/cache/mini/mini_train --map-cache outputs/context/p2/mini-train --neighbor-cache outputs/context/p3/mini-train --base-predictions ../../outputs/mini/gru_train_eval/predictions.npz --split mini_train --dataroot ../../data/nuscenes --output-dir outputs/context/p3/smoke-seed2027 --epochs 2 --device auto
+& $python scripts/evaluate_interaction_online.py --trajectory-cache ../../data/cache/mini/mini_val --map-cache outputs/context/p2/mini-val --neighbor-cache outputs/context/p3/mini-val --base-predictions ../../outputs/mini/gru_eval/predictions.npz --checkpoint outputs/context/p3/smoke-seed2027/best.pt --split mini_val --dataroot ../../data/nuscenes --output-dir outputs/context/p3/mini-val-evaluation --device auto
+$testRunPath = Join-Path (Get-Location) ('outputs/pytest-' + [guid]::NewGuid().ToString('N'))
+& $python -m pytest -q --tb=short --basetemp $testRunPath
+& $python -m ruff check src scripts tests
+& $python scripts/check_public_repo.py
+git diff --check
+```
+
+manifest、training.json、checkpoint metadata 与 summary.json 记录完整场景、hash、参数
+与独立选模进度；每行结果及分组 CSV 位于 mini-val-evaluation。所有 outputs/cache/model
+均被 gitignore 排除，未读取 sensor 文件、未下载新数据、未推送远程。
+
+- 最终 smoke 代码提交：`a22c3d6ede7226da063b04bdcf416173deda66f1`。
+- train neighbor archive SHA256：`bbd05c03b21ddd98cf77e982d41a903552d145c7cd59da836b625eb587da61e4`。
+- eval neighbor archive SHA256：`377309c12e1bfff277b0778e5d4c693773c5e89b16ceaf885438b69bb3d08e37`。
+- suite checkpoint SHA256：`45db6aa32f795a11c1f3a77e7e2578cada07447a4953d173af08433e96d18969`。
+- 固定 GRU checkpoint SHA256：`d0af99801477de295b11fe6eeae1e8dada4ad74eb2cec57e6dfb8cb521da5ddf`。
+
+本地提交：ec1795a（设计/计划）、97d61fb（邻车）、720bfe3（缓存）、b15a520（融合模型）、
+f5346fc（训练）、a22c3d6（评估与历史校验修复）；验收记录与最后补充测试另作提交。
+下一阶段细化 P4 trainval 消融计划，先核验缓存/预测与资源预算，再进行多 seed 训练。

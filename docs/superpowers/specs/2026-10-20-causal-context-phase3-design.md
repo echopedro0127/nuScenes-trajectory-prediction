@@ -53,3 +53,10 @@ MapView和NeighborView，label只交metrics。报告ADE/FDE/jitter、update/hori
 稳定排序、消失/历史不足、过旧/延迟、cache/key/hash拒绝、真实model mask/padding/fallback
 与梯度、checkpoint来源/场景拒绝以及实际evaluator同更新行和label边界。最终全量pytest、
 Ruff、公开扫描、diff check与独立代码审查；本地提交，不推送，不提交数据或模型。
+
+## 实施补充
+
+缓存加载逐个历史槽核验 max_age，并校验有效 velocity 与真实dt后向差分一致。
+checkpoint逐stage记录best_epoch/completed_epochs，suite顶层epoch表示各stage实际完成轮数
+的最大值，不代替各独立选模状态；该suite不用于训练resume。报告已由有真实有效邻车的
+单模态缺失/双模态用例验证，计数和age统计不只依赖全空输入测试。
