@@ -1,6 +1,6 @@
 # 因果在线轨迹预测：分阶段开发路线图
 
-更新日期：2026-10-20。当前状态：P1 时间戳选择与观测/标签接口已完成并验收；下一阶段为 P2 Map-only。
+更新日期：2026-10-20。当前状态：P2 Map-only 工程通路已完成并验收；mini smoke 暂未显示收益，下一阶段为 P3 Neighbors。
 
 ## 开发入口
 
@@ -8,7 +8,7 @@
 - 开发分支：`feature/causal-context-online`。
 - 工作目录：仓库根目录下 `.worktrees/causal-context-online`。
 - 根目录仍使用 `local/resume-bullets`；简历文档和之前的本地实验提案保留原处。
-- P0 提交设计文档；P1 在该开发分支提交接口、测试与验收记录，不推送远程、不训练新模型。
+- P0–P2 的文档、代码与验收记录保留在该开发分支；P2 仅做 mini smoke 训练，不推送远程。
 
 进入开发目录：
 
@@ -21,7 +21,8 @@ git branch --show-current
 检出的分支。
 
 设计见 [技术设计](superpowers/specs/2026-10-20-causal-context-online-design.md)；
-已执行 [P1 实施计划](superpowers/plans/2026-10-20-causal-context-phase1.md)。
+已执行 [P1 实施计划](superpowers/plans/2026-10-20-causal-context-phase1.md) 与
+[P2 实施计划](superpowers/plans/2026-10-20-causal-context-phase2.md)。
 
 ## 阶段及验收
 
@@ -29,7 +30,7 @@ git branch --show-current
 | --- | --- | --- | --- | --- |
 | P0 | 分支、worktree、设计、计划、基线验证 | 开发文档可执行，原有测试通过 | 不需要新数据 | 已完成 |
 | P1 | 时间戳输入选择、观测/标签边界 | 未来帧扰动不影响当前输入，旧 replay 回归通过 | 合成数据 | 已完成 |
-| P2 | 地图上下文与 Map-only Corrector | mini 通路、因果特征测试、无地图 fallback | 现有地图和 metadata | 待开始 |
+| P2 | 地图上下文与 Map-only Corrector | mini 通路、因果特征测试、无地图 fallback | 现有地图和 metadata | 已完成（工程） |
 | P3 | 邻车历史与 Map+Neighbors 融合 | 历史差分、邻车缺失/排序测试、四组消融通路 | 现有 metadata | 待开始 |
 | P4 | trainval 消融与复现报告 | 相同样本/更新集合、多 seed、分组与延迟报告 | 现有 trainval metadata | 待开始 |
 | P5 | mini Radar 与位置退化实验 | 同扰动对照、速度变换、回波覆盖和恢复时间 | 现有 mini sensor | 待开始 |
@@ -116,8 +117,9 @@ P4 的开发/选模使用 train_val；val 曾经报告过结果，后续在相�
 - [x] 用完整依赖环境与独占临时目录通过 246 项基线测试。
 - [x] 技术设计、路线图与 P1 实施计划已编写。
 - [x] P1：实现并验收时间戳选择和观测/标签接口。
+- [x] P2：完成 Map-only cache、训练、evaluator 和 mini smoke 工程验收。
 
-下一次开发从细化 P2 Map-only 实施计划开始。
+下一次开发从细化 P3 Neighbors 实施计划开始。
 
 ## P1 验收记录（2026-10-20）
 
@@ -155,3 +157,87 @@ git diff --check
 新增性能结论；每通道仅取最新一帧，多 sweeps 留到 P5。观测/标签分离用于减少误接线，
 不是同一 Python 进程内的安全隔离；只读数组沿用 NumPy writeable 标志约定。
 P2 将接口接入地图特征、新 Corrector 与实际 evaluator，届时验证真实模型调用边界。
+
+## P2 验收记录（2026-10-20）
+
+Map-only 工程通路完成。细节见 [P2 设计](superpowers/specs/2026-10-20-causal-context-phase2-design.md)
+与 [P2 计划](superpowers/plans/2026-10-20-causal-context-phase2.md)。旧 replay、模型、训练 CLI、
+trajectory cache schema 和原有 README 结果均未修改。
+
+实现：metadata anchor 校验、车道折线/方向与稳定候选排序、独立 content-addressed context
+cache、固定 GRU 的 token/target/模型身份绑定、ObservationView-only residual 特征与地图
+head、场景隔离训练和 checkpoint、四策略同更新行 evaluator、覆盖/fallback 与分组计时。
+原 prediction NPZ 必须同时提供 per_sample.csv 和带 GRU provenance 的 metrics.json，
+加载时拒绝错 split、错配置、错 token 顺序、错来源及不同 base checkpoint/model config。
+
+本轮新增 **28 项行为测试**，P1 的 311 项加上新增后全量 **339 passed**。覆盖未来扰动、
+方向旋转、padding、非零地图 head 的 mask 不变性、无地图严格 fallback、完整缓存准备、
+场景隔离、checkpoint provenance 拒绝和实际 evaluator 预测边界。Ruff、公开仓库扫描与
+`git diff --check` 通过。独立审查发现的完整来源校验、padding 测试和统计口径问题已修复，
+复审无遗留重要问题。
+
+### mini 可行性运行
+
+- 数据为已有 mini metadata/地图，未读取 sensor 文件或下载新数据。
+- 地图配置固定为 radius 50 m、8 条车道、20 点/条、2 m 离散间隔；未用 mini_val 调参。
+- mini_train：570 条轨迹、6270 次更新，地图覆盖 6270 次；metadata/地图准备约 15.36 s。
+- mini_val：47 条轨迹、517 次更新，地图覆盖 517 次；准备约 4.08 s。
+- mini_train 按场景名排序，6 个场景训练（4499 updates）、2 个场景选模（1771 updates）。
+  原 mini Corrector 曾在全 mini_train 上训练/选模，因此本轮重新在同一 6 场景上训练
+  原 ResidualCorrector，以同一 selection 选模后冻结，再训练地图附加 head。
+- seed=2027，CUDA，原 Corrector 与 map head 各 2 epoch；固定历史 GRU 不重新训练。
+  mini_val 仅在 P2 模型冻结后运行，不称全新盲测，固定 GRU 的历史训练/选模来源仍被继承。
+- 四种策略各 517 行、共 2068 行，场景为 scene-0103、scene-0916；无失败、fallback=0。
+  此真实子集未触发缺地图路径，该路径由合成模型/evaluator 测试验证。
+
+以下均是本次匹配 update 行上的 smoke 记录，不与旧完整 horizon 指标直接比较：
+
+| 策略 | ADE (m) | FDE (m) | jitter (m) |
+| --- | ---: | ---: | ---: |
+| frozen | 7.239052 | 8.946203 | 0.000000 |
+| sliding | 2.203285 | 5.005146 | 1.018701 |
+| corrected | 7.728077 | 8.935945 | 2.313310 |
+| map_corrected | 8.478229 | 9.472696 | 3.057674 |
+
+本次 Map Corrector 退化，尚无收益证据；两轮 smoke 用于验证工程通路，不能推出正式效果
+或继续调 mini_val 选参数。参数量匹配对照、多 seed、场景级置信区间及 trainval 消融仍属
+P3/P4 后续工作。mask/coverage 目前表示存在可用车道折线，不等同检测道路几何适用性。
+
+计时分 cached replay 准备、特征/数据搬运、encoder/head 与返回搬运；完整 update 计时
+仅覆盖缓存路径且包含 replay 的 label snapshot 开销，不包含地图磁盘读取和离散化。
+CUDA 已同步，但未做 warmup，因此只作为可行性运行记录，不发布实时性能结论。
+地图静态来源/可用时间为 0，age 标记 static_not_applicable，动态 target 位置为 annotation
+oracle；不读取未来 pose，预测终点始终保持 t0+6 秒。
+
+### 复现与本地文件
+
+在开发 worktree 内运行，下列相对数据路径指向共享仓库；所有输出都保留在本 worktree：
+
+```powershell
+$python = (Resolve-Path ../trajectory-mvp/.venv/Scripts/python.exe).Path
+$env:PYTHONPATH = Join-Path (Get-Location) 'src'
+& $python scripts/prepare_context.py --trajectory-cache ../../data/cache/mini/mini_train --split mini_train --dataroot ../../data/nuscenes --output-dir outputs/context/p2/mini-train
+& $python scripts/prepare_context.py --trajectory-cache ../../data/cache/mini/mini_val --split mini_val --dataroot ../../data/nuscenes --output-dir outputs/context/p2/mini-val
+& $python scripts/train_context_corrector.py --trajectory-cache ../../data/cache/mini/mini_train --context-cache outputs/context/p2/mini-train --split mini_train --base-predictions ../../outputs/mini/gru_train_eval/predictions.npz --dataroot ../../data/nuscenes --output-dir outputs/context/p2/smoke-seed2027 --epochs 2 --device auto
+& $python scripts/evaluate_context_online.py --trajectory-cache ../../data/cache/mini/mini_val --context-cache outputs/context/p2/mini-val --split mini_val --base-predictions ../../outputs/mini/gru_eval/predictions.npz --checkpoint outputs/context/p2/smoke-seed2027/best.pt --dataroot ../../data/nuscenes --output-dir outputs/context/p2/mini-val-evaluation --device auto
+$testRunPath = Join-Path (Get-Location) ('outputs/pytest-' + [guid]::NewGuid().ToString('N'))
+& $python -m pytest -q --tb=short --basetemp $testRunPath
+& $python -m ruff check src scripts tests
+& $python scripts/check_public_repo.py
+git diff --check
+```
+
+场景清单及哈希、源 metadata/地图 hash、输入模型身份与全部 artifact hash 保存在 context
+manifest、training.json、checkpoint metadata 及 evaluation/summary.json；各 update 行与
+update/horizon/maneuver 分组 CSV 保存在 mini-val-evaluation 目录。数据、checkpoint 和
+运行指标文件全部被 gitignore 排除，不提交。
+
+- 本次评估代码提交：`0aa319070b9bfeff77bb7fcc1d17fea5e5ae48e9`。
+- 训练 context archive SHA256：`1215cf6378edf820b66435eb74315ff4be08dbac5e9957b6f5f306ae568b9c2e`。
+- 评估 context archive SHA256：`1783c5587c26d6f6db879db4be554116b5dbd4b8038920b96d3f4d95cd25b9fb`。
+- 最终 smoke checkpoint SHA256：`4bb4eb297b1c366b642c8f39f02518caf78d5e1742aea201b64acb1e44a20595`。
+- 固定 GRU checkpoint SHA256：`d0af99801477de295b11fe6eeae1e8dada4ad74eb2cec57e6dfb8cb521da5ddf`。
+
+本地提交：8779f32（设计/计划）、e658b8c（地图）、0548a6d（缓存）、a6f8438（模型）、
+63421fe（训练）、117cb90（评估）、0aa3190（来源校验修复）；本文验收记录另作 docs 提交。
+下一阶段为 P3 Neighbors，不直接跳到全模态或 trainval sensor 训练。

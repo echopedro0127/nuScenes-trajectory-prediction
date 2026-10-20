@@ -23,7 +23,8 @@ split、原 trajectory manifest/archive 哈希、metadata/map 文件哈希、时
 核验 contract、完整 key 顺序、时间戳和形状。所有行保留，无地图行不删除。
 
 旧 prediction NPZ 没有 token：强制绑定同目录 per_sample.csv 的完整有序 key，并核验
-NPZ target 与 trajectory future 一致；checkpoint 记录两个文件哈希。未来新格式可携带
+NPZ target 与 trajectory future 一致；metrics.json 必须记录固定 GRU 的 checkpoint、
+model config 与 data config 身份，checkpoint 记录三份文件哈希并核验跨 split 模型一致。未来新格式可携带
 内嵌 key，本阶段不改旧 writer。跨 split 评估只比较预处理配置和来源哈希，不能要求评估
 缓存 hash 等于训练缓存；checkpoint 分别记录训练/选择上下文 hash 与场景清单哈希。
 
@@ -52,3 +53,6 @@ ADE/FDE/jitter、按 update/剩余 horizon/maneuver 分组、coverage、fallback
 全量 pytest、ruff、公开仓库扫描和 diff check。真实 mini 跑 prepare/train/evaluate，
 保存场景、seed、hash、命令、覆盖率和失败；输出全部位于 outputs/context/p2，数据、
 模型和指标不提交。P2 工程完成不代表多 seed/trainval 效果验收，后者属于 P4。
+
+地图 API 核验来源：[nuScenes 官方 map expansion 教程](https://www.nuscenes.org/tutorials/map_expansion_tutorial.html)
+与 [devkit map_api.py](https://github.com/nutonomy/nuscenes-devkit/blob/master/python-sdk/nuscenes/map_expansion/map_api.py)，运行使用本机固定 1.2.0。
