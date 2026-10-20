@@ -15,7 +15,7 @@ from trajectory_prediction.config import load_yaml
 from trajectory_prediction.context.cache import IDENTIFIERS, digest_json, key_hash
 from trajectory_prediction.context.preparation import load_predictions
 from trajectory_prediction.context.radar import RadarConfig
-from trajectory_prediction.context.radar_index import RadarIndex
+from trajectory_prediction.context.radar_index import CHANNELS, TABLES, RadarIndex
 from trajectory_prediction.data.cache import _replace_manifest, load_cache
 from trajectory_prediction.online.observation_noise import (
     CONDITIONS,
@@ -80,6 +80,10 @@ def prepare_arrays(arrays, index):
 
 def validate_radar(arrays, contract):
     config = RadarConfig(**contract["config"])
+    source = contract.get("source", {})
+    required = {contract.get("dataset_version", "v1.0-mini") + "/" + name + ".json" for name in TABLES}
+    if not isinstance(source, dict) or not required <= set(source):
+        raise ValueError("radar source metadata list incomplete")
     n, c = len(arrays["instance_token"]), len(CONDITIONS)
     expected = {**{name: (n,) for name in IDENTIFIERS}, "anchor_timestamp_us": (n,), "timestamp_us": (n, 11)}
     expected.update({name: (c, n, 11, 2) for name in ("position", "velocity", "filtered_position", "filtered_velocity")})
@@ -108,6 +112,8 @@ def validate_radar(arrays, contract):
         raise ValueError("radar statistics semantics mismatch")
     tokens, frame_source, frame_available = (arrays[name] for name in ("frame_tokens", "frame_source_us", "frame_available_us"))
     valid = tokens != ""
+    if np.any(present & ~valid.any(-1)):
+        raise ValueError("radar points without source frames")
     if np.any(frame_source[~valid] != 0) or np.any(frame_available[~valid] != 0) or np.any(frame_source[valid] < 0) or np.any(frame_available[valid] != frame_source[valid]) or np.any((frame_source > times[None, ..., None]) & valid) or np.any(((times[None, ..., None] - frame_source) > config.window_us) & valid):
         raise ValueError("radar frame availability mismatch")
 
@@ -147,6 +153,50 @@ def load_radar(root, expected_contract, dataroot):
     return arrays, manifest
 
 
+def audit_bundle(arrays, cache, contract, dataroot):
+    """Rebuild the required source set and causal state independently of cached claims."""
+    if contract.get("perturbation_seed") != 2027:
+        raise ValueError("radar perturbation seed mismatch")
+    index = RadarIndex(dataroot, contract["dataset_version"], RadarConfig(**contract["config"]))
+    required = set(index.source_hashes)
+    if any(contract["source"].get(name) != digest for name, digest in index.source_hashes.items()):
+        raise ValueError("radar metadata source mismatch")
+    slots = 5 * index.config.sweeps_per_channel
+    for i, sample_token in enumerate(arrays["sample_token"]):
+        sample = index.samples[str(sample_token)]
+        anchor = sample["timestamp"]
+        scene = str(arrays["scene_name"][i])
+        if anchor != cache["anchor_timestamp_us"][i] or index.scenes[sample["scene_token"]]["name"] != scene:
+            raise ValueError("radar anchor/source mismatch")
+        key = str(arrays["instance_token"][i]) + "/" + str(sample_token)
+        for c, condition in enumerate(CONDITIONS):
+            states = list(replay_states(arrays["history_xy"][i], arrays["future_xy"][i, :11], anchor, key, condition))
+            for name in ("position", "velocity", "source_us", "available_us", "fresh"):
+                expected = np.array([getattr(state, name) for state in states], dtype=cache[name].dtype)
+                if not np.array_equal(expected, cache[name][c, i]):
+                    raise ValueError("cached position state differs from fixed causal replay")
+            position, velocity = filtered_positions(arrays["history_xy"][i], anchor, states)
+            if not np.array_equal(position, cache["filtered_position"][c, i]) or not np.array_equal(velocity, cache["filtered_velocity"][c, i]):
+                raise ValueError("cached filter state differs from causal replay")
+        for k, timestamp in enumerate(cache["timestamp_us"][i]):
+            tokens, times = [], []
+            for channel in CHANNELS:
+                key = scene, channel
+                records = index.frames.get(key, [])
+                end = int(np.searchsorted(index.times.get(key, []), timestamp, side="right"))
+                for row in records[max(0, end - index.config.sweeps_per_channel):end][::-1]:
+                    if timestamp - row["timestamp"] <= index.config.window_us:
+                        tokens.append(row["token"])
+                        times.append(row["timestamp"])
+                        required.add(row["filename"])
+            tokens += [""] * (slots - len(tokens))
+            times += [0] * (slots - len(times))
+            if not np.all(cache["frame_tokens"][:, i, k] == np.asarray(tokens)) or not np.all(cache["frame_source_us"][:, i, k] == np.asarray(times)) or not np.all(cache["frame_available_us"][:, i, k] == np.asarray(times)):
+                raise ValueError("radar frame source selection differs from metadata")
+    if set(contract["source"]) != required:
+        raise ValueError("radar source PCD list incomplete or unexpected")
+
+
 def load_radar_bundle(trajectory_root, context_root, split, prediction_path, dataroot, config):
     arrays, original = load_cache(Path(trajectory_root), split)
     manifest = json.loads((Path(context_root) / "manifest.json").read_text(encoding="utf-8"))
@@ -158,6 +208,9 @@ def load_radar_bundle(trajectory_root, context_root, split, prediction_path, dat
     for name in IDENTIFIERS:
         if not np.array_equal(arrays[name], cache[name]):
             raise ValueError("radar trajectory keys differ")
+    if contract.get("perturbation_seed") != 2027 or contract.get("filters") != {"invalid_states": [0], "dynprop_states": list(range(7)), "ambig_states": [3]}:
+        raise ValueError("radar fixed policy mismatch")
+    audit_bundle(arrays, cache, contract, dataroot)
     return arrays, cache, base, manifest
 
 
