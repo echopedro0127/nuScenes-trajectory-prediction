@@ -1,0 +1,4 @@
+radius_m: 50.0
+max_neighbors: 8
+max_age_us: 500000
+latency_us: 0
