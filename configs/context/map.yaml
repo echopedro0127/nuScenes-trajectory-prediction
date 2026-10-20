@@ -1,0 +1,4 @@
+radius_m: 50.0
+max_lanes: 8
+points_per_lane: 20
+resolution_m: 2.0
