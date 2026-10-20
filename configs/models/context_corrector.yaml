@@ -1,0 +1,6 @@
+epochs: 20
+batch_size: 128
+hidden_dim: 64
+seed: 2027
+patience: 5
+learning_rate: 0.001
