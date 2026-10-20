@@ -1,6 +1,6 @@
 # 因果在线轨迹预测：分阶段开发路线图
 
-更新日期：2026-10-20。当前状态：P3 Neighbors/融合工程通路已完成；mini smoke 未见稳定上下文收益，下一阶段为 P4 trainval 消融。
+更新日期：2026-10-20。当前状态：P4 全量上下文准备与三 seed mini 通路完成，正式 trainval 三 seed 训练进行中。
 
 ## 开发入口
 
@@ -24,6 +24,8 @@ git branch --show-current
 已执行 [P1 实施计划](superpowers/plans/2026-10-20-causal-context-phase1.md) 与
 [P2 实施计划](superpowers/plans/2026-10-20-causal-context-phase2.md) 与
 [P3 实施计划](superpowers/plans/2026-10-20-causal-context-phase3.md)。
+P4 见 [实施计划](superpowers/plans/2026-10-20-causal-context-phase4.md) 与
+[实验协议和结果](CAUSAL_CONTEXT_PHASE4_RESULTS.md)。
 
 ## 阶段及验收
 
@@ -33,7 +35,7 @@ git branch --show-current
 | P1 | 时间戳输入选择、观测/标签边界 | 未来帧扰动不影响当前输入，旧 replay 回归通过 | 合成数据 | 已完成 |
 | P2 | 地图上下文与 Map-only Corrector | mini 通路、因果特征测试、无地图 fallback | 现有地图和 metadata | 已完成（工程） |
 | P3 | 邻车历史与 Map+Neighbors 融合 | 历史差分、邻车缺失/排序测试、四组消融通路 | 现有 metadata | 已完成（工程） |
-| P4 | trainval 消融与复现报告 | 相同样本/更新集合、多 seed、分组与延迟报告 | 现有 trainval metadata | 待开始 |
+| P4 | trainval 消融与复现报告 | 相同样本/更新集合、多 seed、分组与延迟报告 | 现有 trainval metadata | 进行中 |
 | P5 | mini Radar 与位置退化实验 | 同扰动对照、速度变换、回波覆盖和恢复时间 | 现有 mini sensor | 待开始 |
 | P6 | 质量门控与延迟/缺失实验 | 固定/学习门控对照，输入过旧时可解释 fallback | 前阶段数据 | 条件推进 |
 | P7 | Camera 或 LiDAR 小规模扩展 | 单模态消融、真实 encoder 耗时、覆盖率 | 现有 mini sensor | 可选 |

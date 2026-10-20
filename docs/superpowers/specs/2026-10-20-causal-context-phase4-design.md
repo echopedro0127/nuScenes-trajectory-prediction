@@ -12,7 +12,7 @@ annotation表解码留在RAM。索引由metadata文件哈希绑定，原子发�
 每次只加载一个scene的annotation，为已有NeighborIndex构造相同输入。地图每地区加载
 一次，固定anchor坐标、时间、category和mask策略与P3完全相同。
 
-用numpy.open_memmap写map/neighbor各数组；token用U32（对实际token长度显式校验），
+用numpy.open_memmap写map/neighbor各数组；neighbor token用U32、map lane token用U64（UUID长36字符，均显式检查长度），
 按既有P2/P3 schema验证后生成content-addressed NPZ与原manifest。额外mmap_manifest
 记录每个NPY的sha256/dtype/shape并绑定原manifest/NPZ身份。训练只映射需用数组，token
 和metadata不搬到GPU；加载拒绝错源/配置/split/row order/sidecar checksum。旧CLI兼容。

@@ -148,6 +148,7 @@ def write_batch_outputs(data, results, timings, output_dir, provenance):
         pd.concat(group_frames[field], ignore_index=True).to_csv(root / filename, index=False)
     summary = {"provenance": provenance, "strategies": summaries, "sample_count": len(data.base),
         "update_count": data.size, "ordered_key_sha256": ordered_key_hash(keys),
+        "group_sha256": {name: sha256_file(root / name) for name in ("by_update.csv", "by_horizon.csv", "by_maneuver.csv")},
         "per_update_sha256": sha256_file(path), "scene_stats_sha256": sha256_file(root / "scene_stats.csv"),
         "coverage": {"map": float(keys.map_covered.mean()), "neighbors": float(keys.neighbor_covered.mean()),
                      "either": float((keys.map_covered | keys.neighbor_covered).mean())},

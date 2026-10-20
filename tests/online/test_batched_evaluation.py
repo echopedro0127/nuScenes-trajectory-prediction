@@ -31,3 +31,16 @@ def test_batched_metrics_match_real_nine_strategy_replay_with_nonempty_context()
         assert metrics[0, 0, 2] == 0
         assert timing[strategy] >= 0
     assert np.count_nonzero(results["frozen"][..., 2]) == 0
+
+
+def test_latency_keys_are_fixed_unique_and_real_predictors_are_benchmarked(tmp_path):
+    from trajectory_prediction.online.scaled_evaluation import benchmark_keys, benchmark_updates
+    np.testing.assert_array_equal(benchmark_keys(1000), benchmark_keys(1000))
+    assert len(set(benchmark_keys(1000))) == 256
+    arrays, maps, neighbors, base, models = fixture()
+    maps["timestamp_us"] = neighbors["timestamp_us"]
+    result = benchmark_updates(BatchedContext(arrays, maps, neighbors, base), models, tmp_path, count=3, warmup=1)
+    assert result["key_count"] == 3
+    assert result["inference_batch_size"] == 1
+    assert len(result["strategies"]) == 9
+    assert all(value["total_ms"]["p95"] >= 0 for value in result["strategies"].values())
