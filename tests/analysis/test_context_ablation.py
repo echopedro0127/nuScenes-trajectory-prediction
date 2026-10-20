@@ -36,6 +36,19 @@ def artifacts(root):
         write_batch_outputs(data, values, dict.fromkeys(STRATEGIES, 1.), path,
                             {"seed": seed, "evaluation_identity": "same", "training_config_sha256": "same"})
         paths.append(path)
+    from trajectory_prediction.online.batched_evaluation import key_frame
+    from trajectory_prediction.online.scaled_evaluation import benchmark_keys
+    from trajectory_prediction.utils.provenance import sha256_file
+    for path in paths:
+        keys = key_frame(data).iloc[benchmark_keys(data.size)]
+        keys.insert(0, "flat_index", keys.index)
+        keys.to_csv(path / "latency_keys.csv", index=False)
+        latency = {"key_count": len(keys), "warmup_per_strategy": 16,
+            "keys_sha256": sha256_file(path / "latency_keys.csv"), "device": "cpu", "device_name": "test",
+            "torch_version": "test", "scope": "single_update_test", "inference_batch_size": 1,
+            "strategies": {strategy: {field: {"p50": .1, "p95": .2} for field in ("total_ms", "feature_ms", "encoder_head_ms")}
+                           for strategy in STRATEGIES}}
+        (path / "latency.json").write_text(json.dumps(latency))
     return paths
 
 
@@ -95,4 +108,14 @@ def test_report_rejects_metrics_inconsistent_with_scene_stats(tmp_path):
     value["per_update_sha256"] = sha256_file(path)
     summary.write_text(json.dumps(value))
     with pytest.raises(ValueError, match="statistics differ"):
+        report_ablation(paths, tmp_path / "report")
+
+
+def test_report_requires_complete_matching_latency_benchmark(tmp_path):
+    paths = artifacts(tmp_path)
+    latency = paths[1] / "latency.json"
+    value = json.loads(latency.read_text())
+    value["warmup_per_strategy"] = 0
+    latency.write_text(json.dumps(value))
+    with pytest.raises(ValueError, match="latency"):
         report_ablation(paths, tmp_path / "report")

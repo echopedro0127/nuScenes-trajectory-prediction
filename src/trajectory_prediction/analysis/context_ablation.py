@@ -91,6 +91,27 @@ def _read_run(root):
     return summary, stats
 
 
+def _latency(root, summary):
+    root = Path(root)
+    result = json.loads((root / "latency.json").read_text(encoding="utf-8"))
+    keys = pd.read_csv(root / "latency_keys.csv")
+    if sha256_file(root / "latency_keys.csv") != result["keys_sha256"] or result["key_count"] != min(256, summary["update_count"]) or len(keys) != result["key_count"] or result["warmup_per_strategy"] != 16 or result["inference_batch_size"] != 1 or set(result["strategies"]) != set(STRATEGIES):
+        raise ValueError("incomplete latency benchmark")
+    expected = np.sort(np.random.default_rng(2027).choice(summary["update_count"], len(keys), replace=False))
+    if not np.array_equal(keys.flat_index, expected):
+        raise ValueError("latency keys differ from fixed selection")
+    names = ["instance_token", "sample_token", "scene_name", "update_step", "timestamp_us"]
+    baseline = pd.read_csv(root / "per_update.csv.gz", nrows=summary["update_count"], usecols=names).iloc[expected].reset_index(drop=True)
+    if not baseline.equals(keys[names].reset_index(drop=True)):
+        raise ValueError("latency/evaluation keys mismatch")
+    for profile in result["strategies"].values():
+        for field in ("total_ms", "feature_ms", "encoder_head_ms"):
+            p50, p95 = profile[field]["p50"], profile[field]["p95"]
+            if not np.isfinite([p50, p95]).all() or not 0 <= p50 <= p95:
+                raise ValueError("invalid latency percentiles")
+    return result
+
+
 def report_ablation(run_dirs, output_dir, seeds=(2027, 2028, 2029), replicates=2000):
     if len(run_dirs) != len(seeds) or len(seeds) != 3 or len(set(seeds)) != 3:
         raise ValueError("three unique seeds required")
@@ -109,6 +130,10 @@ def report_ablation(run_dirs, output_dir, seeds=(2027, 2028, 2029), replicates=2
         for strategy in ("frozen", "sliding"):
             if any(summary["strategies"][strategy][metric] != first["strategies"][strategy][metric] for metric in METRICS):
                 raise ValueError("deterministic baseline differs across seeds")
+    latency = [_latency(root, summary) for root, (summary, _) in zip(run_dirs, runs, strict=True)]
+    for item in latency[1:]:
+        if any(item[field] != latency[0][field] for field in ("keys_sha256", "device", "device_name", "torch_version", "scope")):
+            raise ValueError("cross-seed latency identity mismatch")
     all_stats = pd.concat([stats for _, stats in runs], ignore_index=True)
     scenes = sorted(all_stats.scene_name.unique())
     blocks = {}
@@ -138,7 +163,9 @@ def report_ablation(run_dirs, output_dir, seeds=(2027, 2028, 2029), replicates=2
         for reference in ("original", "matched_" + mode):
             contrasts[mode + "-" + reference] = {metric: paired_scene_interval(blocks[mode][metric] - blocks[reference][metric], counts, replicates)
                                                    for metric in METRICS}
-    result = {"seeds": list(seeds), "sample_count": first["sample_count"], "update_count_per_strategy_seed": first["update_count"],
+    result = {"report_source_sha256": sha256_file(Path(__file__)),
+        "latency": {str(seed): value for seed, value in zip(actual, latency, strict=True)},
+        "seeds": list(seeds), "sample_count": first["sample_count"], "update_count_per_strategy_seed": first["update_count"],
         "scene_count": len(scenes), "coverage": first["coverage"],
         "fallback_updates": {strategy: first["strategies"][strategy]["fallback_updates"] for strategy in STRATEGIES}, "metrics": metrics, "contrasts": contrasts,
         "uncertainty": {"unit": "paired_scene_cluster", "replicates": replicates, "bootstrap_seed": 0,
@@ -152,6 +179,9 @@ def report_ablation(run_dirs, output_dir, seeds=(2027, 2028, 2029), replicates=2
              **{metric + "_ci_" + bound: values["ci95"][i] for metric, values in entry.items() for i, bound in enumerate(("low", "high"))}}
             for strategy, entry in metrics.items()]
     pd.DataFrame(rows).to_csv(output / "metrics.csv", index=False)
+    pd.DataFrame([{"seed": seed, "strategy": strategy, **{field + "_" + percentile: value
+        for field, entry in profile.items() for percentile, value in entry.items()}}
+        for seed, item in zip(actual, latency, strict=True) for strategy, profile in item["strategies"].items()]).to_csv(output / "latency.csv", index=False)
     pd.DataFrame([{"contrast": name, "metric": metric, "delta": entry["delta"], "ci_low": entry["ci95"][0], "ci_high": entry["ci95"][1]}
                   for name, values in contrasts.items() for metric, entry in values.items()]).to_csv(output / "contrasts.csv", index=False)
     for filename, group in (("by_update.csv", "update_step"), ("by_horizon.csv", "remaining_steps"), ("by_maneuver.csv", "maneuver")):
