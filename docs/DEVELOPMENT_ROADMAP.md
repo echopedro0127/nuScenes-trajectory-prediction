@@ -1,6 +1,6 @@
 # 因果在线轨迹预测：分阶段开发路线图
 
-更新日期：2026-10-20。当前状态：P0 分支、设计和开发计划已建立；新增功能尚未实现。
+更新日期：2026-10-20。当前状态：P1 时间戳选择与观测/标签接口已完成并验收；下一阶段为 P2 Map-only。
 
 ## 开发入口
 
@@ -8,7 +8,7 @@
 - 开发分支：`feature/causal-context-online`。
 - 工作目录：仓库根目录下 `.worktrees/causal-context-online`。
 - 根目录仍使用 `local/resume-bullets`；简历文档和之前的本地实验提案保留原处。
-- 本轮只向开发分支提交文档，不推送远程、不训练新模型。
+- P0 提交设计文档；P1 在该开发分支提交接口、测试与验收记录，不推送远程、不训练新模型。
 
 进入开发目录：
 
@@ -21,14 +21,14 @@ git branch --show-current
 检出的分支。
 
 设计见 [技术设计](superpowers/specs/2026-10-20-causal-context-online-design.md)；
-下一步执行 [P1 实施计划](superpowers/plans/2026-10-20-causal-context-phase1.md)。
+已执行 [P1 实施计划](superpowers/plans/2026-10-20-causal-context-phase1.md)。
 
 ## 阶段及验收
 
 | 阶段 | 工作范围 | 验收依据 | 数据 | 状态 |
 | --- | --- | --- | --- | --- |
 | P0 | 分支、worktree、设计、计划、基线验证 | 开发文档可执行，原有测试通过 | 不需要新数据 | 已完成 |
-| P1 | 时间戳输入选择、观测/标签边界 | 未来帧扰动不影响当前输入，旧 replay 回归通过 | 合成数据 | 待开始 |
+| P1 | 时间戳输入选择、观测/标签边界 | 未来帧扰动不影响当前输入，旧 replay 回归通过 | 合成数据 | 已完成 |
 | P2 | 地图上下文与 Map-only Corrector | mini 通路、因果特征测试、无地图 fallback | 现有地图和 metadata | 待开始 |
 | P3 | 邻车历史与 Map+Neighbors 融合 | 历史差分、邻车缺失/排序测试、四组消融通路 | 现有 metadata | 待开始 |
 | P4 | trainval 消融与复现报告 | 相同样本/更新集合、多 seed、分组与延迟报告 | 现有 trainval metadata | 待开始 |
@@ -115,6 +115,43 @@ P4 的开发/选模使用 train_val；val 曾经报告过结果，后续在相�
 - [x] 公开主线与本地简历分支的差异已确认只涉及文档。
 - [x] 用完整依赖环境与独占临时目录通过 246 项基线测试。
 - [x] 技术设计、路线图与 P1 实施计划已编写。
-- [ ] P1：实现并验收时间戳选择和观测/标签接口。
+- [x] P1：实现并验收时间戳选择和观测/标签接口。
 
-下一次开发从 P1 开始；本轮不包含 P1 生产代码。
+下一次开发从细化 P2 Map-only 实施计划开始。
+
+## P1 验收记录（2026-10-20）
+
+观测 adapter 已可用，生产 context evaluator 接入在 P2。
+
+- `FrameRef` 校验非空 token/channel、非负整数微秒，以及 availability 不早于 source。
+- `latest_available` 按通道筛选已可用且不超过 2 秒的帧，按 source timestamp、token
+  选择最新记录；边界包含等号，缺失返回 `None`。
+- `ObservationView` 与 `EvaluationLabel` 分离，数组复制为 float32 只读快照；旧 replay
+  保持原样。adapter 限定 12 点，每次更新 0.5 秒，共 11 次更新，终点保持为 t0+6 秒。
+- 新增 **65 项测试**：timeline 27 项，observations 38 项；旧 replay 7 项连同新测试
+  的聚焦回归共 **72 passed**。本轮先重跑原有基线得到 **246 passed**，全量验收得到
+  **311 passed**。未来位置扰动覆盖全部 11 次更新，另覆盖未来帧删除、延迟释放、过旧、
+  输入修改不影响快照、只读标签、非法输入及 dummy predictor 的观测字段边界。
+- Ruff、公开仓库检查和 `git diff --check` 均通过。
+- 本地代码提交：`1220d1d`（帧选择）、`07c9e4c`（观测/标签 adapter）；验收文档另作
+  `docs: record causal context phase one verification` 提交。
+
+实际执行命令（开发 worktree 内，所有 pytest 均生成新的独占 basetemp）：
+
+```powershell
+$env:PYTHONPATH = Join-Path (Get-Location) 'src'
+$python = (Resolve-Path ../trajectory-mvp/.venv/Scripts/python.exe).Path
+# 新测试先分别确认 context / observations 模块缺失导致失败，再实现并验证。
+& $python -m pytest tests/context/test_timeline.py -q --basetemp (Join-Path (Get-Location) ('outputs/pytest-' + [guid]::NewGuid().ToString('N')))
+& $python -m pytest tests/online/test_observations.py -q --basetemp (Join-Path (Get-Location) ('outputs/pytest-' + [guid]::NewGuid().ToString('N')))
+& $python -m pytest tests/context/test_timeline.py tests/online/test_observations.py tests/online/test_replay.py -q --basetemp (Join-Path (Get-Location) ('outputs/pytest-' + [guid]::NewGuid().ToString('N')))
+& $python -m pytest -q --tb=short --basetemp (Join-Path (Get-Location) ('outputs/pytest-' + [guid]::NewGuid().ToString('N')))
+& $python -m ruff check src scripts tests
+& $python scripts/check_public_repo.py
+git diff --check
+```
+
+限制：本阶段仅用合成数据与 sensor token 引用，无真实 sensor I/O、训练、缓存扩展或
+新增性能结论；每通道仅取最新一帧，多 sweeps 留到 P5。观测/标签分离用于减少误接线，
+不是同一 Python 进程内的安全隔离；只读数组沿用 NumPy writeable 标志约定。
+P2 将接口接入地图特征、新 Corrector 与实际 evaluator，届时验证真实模型调用边界。
