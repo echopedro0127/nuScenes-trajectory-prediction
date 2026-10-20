@@ -92,3 +92,48 @@ def test_vectorized_neighbor_query_matches_reference_with_rotation_delay_and_mis
                 for field in ("mask", "velocity_mask", "source_timestamp_us", "available_timestamp_us", "annotation_tokens"):
                     np.testing.assert_array_equal(getattr(actual, field), getattr(expected, field))
                 np.testing.assert_allclose(actual.features, expected.features, atol=1e-5, rtol=1e-5)
+
+
+
+def archive_fixture(root):
+    from test_context_cache import contract, records
+
+    from trajectory_prediction.utils.provenance import sha256_file
+    values, expected = records(), contract()
+    root.mkdir(parents=True, exist_ok=True)
+    np.savez(root / "archive.npz", **values)
+    for name, value in values.items():
+        np.save(root / (name + ".npy"), value)
+    manifest = {"contract": expected, "npz_file": "archive.npz", "npz_sha256": sha256_file(root / "archive.npz")}
+    (root / "manifest.json").write_text(json.dumps(manifest))
+    return values, expected
+
+
+def test_mmap_sidecars_cannot_change_content_or_omit_arrays_under_same_archive(tmp_path):
+    values, _expected = archive_fixture(tmp_path / "changed")
+    np.save(tmp_path / "changed" / "features.npy", values["features"] + 999)
+    with pytest.raises(ValueError, match="archive"):
+        publish_sidecar(tmp_path / "changed", values)
+    values, _expected = archive_fixture(tmp_path / "missing")
+    with pytest.raises(ValueError, match="schema|archive"):
+        publish_sidecar(tmp_path / "missing", {name: value for name, value in values.items() if name != "mask"})
+
+
+def test_mmap_contract_derived_shapes_are_checked_before_publication(tmp_path):
+    values, expected = archive_fixture(tmp_path)
+    values["features"] = np.zeros((1, 11, 1, 1, 4), np.float32)
+    np.savez(tmp_path / "archive.npz", **values)
+    for name, value in values.items():
+        np.save(tmp_path / (name + ".npy"), value)
+    from trajectory_prediction.utils.provenance import sha256_file
+    manifest = {"contract": expected, "npz_file": "archive.npz", "npz_sha256": sha256_file(tmp_path / "archive.npz")}
+    (tmp_path / "manifest.json").write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match="shape"):
+        publish_sidecar(tmp_path, values)
+
+
+@pytest.mark.parametrize("chunk", [1, 2, 7])
+def test_streamed_numbers_cross_chunks(tmp_path, chunk):
+    path = tmp_path / "numbers.json"
+    path.write_text("[1e2,-3.25,1.0e-4]")
+    assert list(stream_json_array(path, chunk)) == [100., -3.25, .0001]

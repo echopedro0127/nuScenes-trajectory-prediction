@@ -40,7 +40,7 @@ def stream_json_array(path, chunk_size=1 << 20):
                 continue
             try:
                 value, end = decoder.raw_decode(buffer)
-                if end == len(buffer) and not eof:
+                if not eof and (end == len(buffer) or (isinstance(value, (int, float)) and buffer[end] not in ",] \t\r\n")):
                     more = stream.read(chunk_size)
                     eof = not more
                     buffer += more
