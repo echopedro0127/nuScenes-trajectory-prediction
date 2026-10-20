@@ -60,6 +60,8 @@ def test_short_ablation_training_restores_suite_and_rejects_invalid_provenance(t
                          epochs=1, batch_size=16, hidden_dim=8, seed=7)
     restored, payload = load_interaction_checkpoint(tmp_path / "best.pt", map_contract,
         neighbor_contract, ["heldout"], metadata["base_model"])
+    assert all(0 < progress["best_epoch"] <= progress["completed_epochs"] == 1
+               for progress in payload["metadata"]["stage_progress"].values())
     assert set(restored) == {"original", "map", "neighbors", "fusion", "matched_map", "matched_neighbors", "matched_fusion"}
     for name in models:
         for a, b in zip(models[name].parameters(), restored[name].parameters(), strict=True):

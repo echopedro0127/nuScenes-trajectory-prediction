@@ -59,8 +59,9 @@ def validate_neighbors(arrays, contract):
                 raise ValueError("target cannot be its own neighbor")
             if np.any(view.available_timestamp_us[view.mask] - view.source_timestamp_us[view.mask] != config.latency_us):
                 raise ValueError("neighbor availability/config mismatch")
-            if np.any(view.timestamp_us - view.source_timestamp_us[:, -1][view.mask[:, -1]] > config.max_age_us):
-                raise ValueError("stale current neighbor")
+            slots = view.timestamp_us - np.arange(4, -1, -1) * 500_000
+            if np.any(((slots[None] - view.source_timestamp_us) > config.max_age_us) & view.mask):
+                raise ValueError("stale neighbor history slot")
             if np.any(np.linalg.norm(view.features[:, -1, :2], axis=-1) > config.radius_m + 1e-4):
                 raise ValueError("neighbor outside configured radius")
 

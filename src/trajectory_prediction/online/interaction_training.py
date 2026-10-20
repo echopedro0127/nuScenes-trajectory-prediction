@@ -82,7 +82,7 @@ def train_suite(train_bundle, train_indices, selection_bundle, selection_indices
     train_data = InteractionDataset(*train_bundle[:3], train_bundle[3], train_indices)
     selection_data = InteractionDataset(*selection_bundle[:3], selection_bundle[3], selection_indices)
     selection_loader = DataLoader(selection_data, batch_size=batch_size, shuffle=False)
-    models, logs, selections, parameters = nn.ModuleDict(), [], {}, {}
+    models, logs, selections, parameters, progress = nn.ModuleDict(), [], {}, {}, {}
     names = ("original", *MODES, *("matched_" + mode for mode in MODES))
     for name in names:
         seed_everything(seed)
@@ -97,14 +97,14 @@ def train_suite(train_bundle, train_indices, selection_bundle, selection_indices
         generator = torch.Generator().manual_seed(seed)
         loader = DataLoader(train_data, batch_size=batch_size, shuffle=True, generator=generator)
         optimizer = torch.optim.AdamW((p for p in model.parameters() if p.requires_grad), lr=learning_rate, weight_decay=.0001)
-        best, state, bad = float("inf"), None, 0
+        best, state, bad, best_epoch = float("inf"), None, 0, 0
         for epoch in range(1, epochs + 1):
             training = _epoch(model, loader, device, optimizer)
             selection = _epoch(model, selection_loader, device)
             logs.append({"stage": name, "epoch": epoch, "train_loss": training["loss"],
                          "selection_loss": selection["loss"], "selection_ade": selection["ade"]})
             if selection["ade"] < best:
-                best, state, bad = selection["ade"], deepcopy(model.state_dict()), 0
+                best, state, bad, best_epoch = selection["ade"], deepcopy(model.state_dict()), 0, epoch
             else:
                 bad += 1
             if bad >= patience:
@@ -112,6 +112,7 @@ def train_suite(train_bundle, train_indices, selection_bundle, selection_indices
         model.load_state_dict(state)
         models[name] = model.eval()
         selections[name] = best
+        progress[name] = {"best_epoch": best_epoch, "completed_epochs": epoch}
         parameters[name] = {"total": sum(p.numel() for p in model.parameters()),
                             "trainable": sum(p.numel() for p in model.parameters() if p.requires_grad)}
     for mode in MODES:
@@ -121,8 +122,9 @@ def train_suite(train_bundle, train_indices, selection_bundle, selection_indices
         "seed": seed, "epochs_requested": epochs, "batch_size": batch_size, "patience": patience,
         "learning_rate": learning_rate, "weight_decay": .0001, "smoothness_weight": .05,
         "device": str(device), "selection_ade": selections, "parameters": parameters,
+        "stage_progress": progress, "checkpoint_epoch_policy": "maximum_completed_stage_epoch_see_stage_progress",
         "resume_supported": False, "parameter_control_policy": "match_total_parameters_context_fallback_frozen_control_all_trainable"}
-    save_checkpoint(output / "best.pt", models, optimizer, epochs, selections["fusion"], metadata=metadata)
+    save_checkpoint(output / "best.pt", models, optimizer, max(item["completed_epochs"] for item in progress.values()), selections["fusion"], metadata=metadata)
     (output / "training.json").write_text(json.dumps({"metadata": metadata, "epochs": logs}, indent=2, allow_nan=False) + "\n", encoding="utf-8")
     return models.eval()
 

@@ -85,6 +85,10 @@ class NeighborView:
         eligible[:, 1:] = mask[:, 1:] & mask[:, :-1] & (differences > 0) & (differences <= 1_000_000)
         if np.any(velocity & ~eligible) or np.any(features[..., 2:4][~velocity] != 0):
             raise ValueError("neighbor velocity requires adjacent valid past observations")
+        expected_velocity = np.diff(features[..., :2], axis=1) / np.maximum(differences, 1)[..., None] * 1e6
+        if not np.allclose(features[:, 1:, 2:4][velocity[:, 1:]],
+                           expected_velocity[velocity[:, 1:]], atol=1e-4, rtol=1e-4):
+            raise ValueError("neighbor velocity must match real-dt backward differences")
         category = features[..., 4:]
         if np.any((category[mask] != 0) & (category[mask] != 1)) or np.any(category.sum(-1)[mask] != 1):
             raise ValueError("valid neighbors require fixed category one-hot")

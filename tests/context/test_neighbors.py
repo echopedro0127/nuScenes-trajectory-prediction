@@ -99,3 +99,20 @@ def test_view_rejects_future_source_or_invalid_velocity_mask():
     velocity_mask[0, 0] = True
     with pytest.raises(ValueError):
         replace(view, velocity_mask=velocity_mask)
+
+
+
+@pytest.mark.parametrize("radius,limit,expected", [(50., 1, ("a",)), (3., 8, ())])
+def test_current_distance_radius_and_maximum_neighbor_count(radius, limit, expected):
+    data = index(config=NeighborConfig(radius_m=radius, max_neighbors=limit))
+    view = data.query(observation(), "self", "scene", np.zeros(2), np.pi / 2)
+    assert tuple(token for token in view.instance_tokens if token) == expected
+
+
+def test_duplicate_sample_never_occupies_multiple_history_slots():
+    data = index()
+    data.times["scene"][1] = 600_000
+    data.samples["1"]["timestamp"] = 600_000
+    view = data.query(observation(), "self", "scene", np.zeros(2), np.pi / 2)
+    assert not view.mask[0, 0] and view.mask[0, 1]
+    assert len(set(view.source_timestamp_us[0, view.mask[0]].tolist())) == int(view.mask[0].sum())

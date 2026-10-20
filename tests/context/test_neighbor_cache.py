@@ -61,3 +61,32 @@ def test_neighbor_cache_rejects_duplicate_or_reordered_keys(tmp_path):
     expected = {**contract(), "keys_sha256": key_hash(values)}
     with pytest.raises(ValueError, match="key"):
         save_neighbors(tmp_path, {name: value[::-1] for name, value in values.items()}, expected)
+
+
+
+def test_stale_history_rejected_even_when_current_neighbor_is_fresh(tmp_path):
+    values = records()
+    k = 3  # tk=2s; previous slot=1.5s, but history source=0 is too old for that slot.
+    values["instance_tokens"][0, k, 0] = "neighbor"
+    values["mask"][0, k, 0, 3:] = True
+    values["annotation_tokens"][0, k, 0, 3:] = ["old", "now"]
+    values["source_timestamp_us"][0, k, 0, -1] = 2_000_000
+    values["available_timestamp_us"][0, k, 0, -1] = 2_000_000
+    values["features"][0, k, 0, 3:, 4] = 1
+    with pytest.raises(ValueError, match="stale"):
+        save_neighbors(tmp_path, values, contract())
+
+
+def test_cached_velocity_must_match_backward_difference(tmp_path):
+    values = records()
+    k = 3
+    values["instance_tokens"][0, k, 0] = "neighbor"
+    values["mask"][0, k, 0, 3:] = True
+    values["velocity_mask"][0, k, 0, -1] = True
+    values["annotation_tokens"][0, k, 0, 3:] = ["past", "now"]
+    values["source_timestamp_us"][0, k, 0, 3:] = [1_500_000, 2_000_000]
+    values["available_timestamp_us"][0, k, 0, 3:] = [1_500_000, 2_000_000]
+    values["features"][0, k, 0, 3:, 4] = 1
+    values["features"][0, k, 0, 3:, 0] = [1, 3]
+    with pytest.raises(ValueError, match="velocity"):
+        save_neighbors(tmp_path, values, contract())
