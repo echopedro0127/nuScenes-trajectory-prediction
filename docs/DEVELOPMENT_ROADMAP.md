@@ -1,6 +1,6 @@
 # 因果在线轨迹预测：分阶段开发路线图
 
-更新日期：2026-10-20。当前状态：P4 全量三 seed 消融、场景统计与延迟报告已完成；地图有收益，邻车单独加入退化，下一阶段 P5。
+更新日期：2026-10-20。当前状态：P5 mini Radar 五条件三 seed 实验已完成；相对小型Corrector有平均改善，但强CV/滤波更优，P6仍按证据条件推进。
 
 ## 开发入口
 
@@ -8,7 +8,7 @@
 - 开发分支：`feature/causal-context-online`。
 - 工作目录：仓库根目录下 `.worktrees/causal-context-online`。
 - 根目录仍使用 `local/resume-bullets`；简历文档和之前的本地实验提案保留原处。
-- P0–P3 的文档、代码与验收记录保留在该开发分支；P2/P3 仅做 mini smoke 训练，不推送远程。
+- P0–P5 的文档、代码与验收记录保留在该开发分支；P2/P3/P5使用mini，P4使用完整trainval，不推送远程。
 
 进入开发目录：
 
@@ -26,6 +26,8 @@ git branch --show-current
 [P3 实施计划](superpowers/plans/2026-10-20-causal-context-phase3.md)。
 P4 见 [实施计划](superpowers/plans/2026-10-20-causal-context-phase4.md) 与
 [实验协议和结果](CAUSAL_CONTEXT_PHASE4_RESULTS.md)。
+P5见 [实施计划](superpowers/plans/2026-10-20-causal-context-phase5.md) 与
+[完整可行性报告](CAUSAL_CONTEXT_PHASE5_RESULTS.md)。
 
 ## 阶段及验收
 
@@ -36,7 +38,7 @@ P4 见 [实施计划](superpowers/plans/2026-10-20-causal-context-phase4.md) 与
 | P2 | 地图上下文与 Map-only Corrector | mini 通路、因果特征测试、无地图 fallback | 现有地图和 metadata | 已完成（工程） |
 | P3 | 邻车历史与 Map+Neighbors 融合 | 历史差分、邻车缺失/排序测试、四组消融通路 | 现有 metadata | 已完成（工程） |
 | P4 | trainval 消融与复现报告 | 相同样本/更新集合、多 seed、分组与延迟报告 | 现有 trainval metadata | 已完成 |
-| P5 | mini Radar 与位置退化实验 | 同扰动对照、速度变换、回波覆盖和恢复时间 | 现有 mini sensor | 待开始 |
+| P5 | mini Radar 与位置退化实验 | 同扰动对照、速度变换、回波覆盖和恢复时间 | 现有 mini sensor | 已完成（mini实验） |
 | P6 | 质量门控与延迟/缺失实验 | 固定/学习门控对照，输入过旧时可解释 fallback | 前阶段数据 | 条件推进 |
 | P7 | Camera 或 LiDAR 小规模扩展 | 单模态消融、真实 encoder 耗时、覆盖率 | 现有 mini sensor | 可选 |
 
@@ -387,3 +389,39 @@ val仍称历史固定验证集回归，不作为新盲测。
 本阶段代码提交：acff8bf（计划）、908c68e（全量准备）、a975c14（批量训练评估）、
 213cec6（场景统计与延迟）、ecdc794（源码变化回归）、67fc46e（延迟一致性）。
 下一阶段为P5 mini Radar与位置退化实验，继续时先细化独立实施计划。
+
+
+## P5 mini Radar 与位置退化验收（2026-10-20）
+
+完整mini_train570条/8场景，内部409条/6场景训练、161条/2场景选模；seeds2027/2028/2029。
+五条件为clean、1m高斯噪声、0.5/1s交付延迟、固定丢弃第4/5/6次位置更新。所有策略
+共享同一时间感知退化状态和固定GRU，Radar半径门控也用该状态，无标注框关联。
+完整mini_val47条/2场景，六策略×五条件×11更新，三seed共46,530条记录，失败0。
+
+| 条件 | original ADE/m | Radar ADE/m | matched ADE/m | sliding ADE/m | filtered ADE/m |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| clean | 6.112666 | 5.958220 | 6.141214 | 2.203285 | 3.387421 |
+| noise | 7.109338 | 6.924692 | 7.236954 | 7.190922 | 3.940704 |
+| delay 0.5s | 6.252575 | 6.023069 | 6.267482 | 3.026487 | 4.263374 |
+| delay 1s | 6.614336 | 6.327768 | 6.644946 | 3.879909 | 5.119225 |
+| dropout | 6.285151 | 6.108900 | 6.320326 | 2.785395 | 4.228504 |
+
+上述为三seed均值。Radar相对小型original/matched平均ADE更低，但若干两场景描述性
+区间跨0，训练seed方向不一致；强CV/滤波基线仍更优，不能声称稳定泛化或整体方案优越。
+原Corrector是P5混合退化条件重训，同P4权重和数据不同；初始干净oracle历史/anchor保留。
+
+Radar覆盖88.39%–90.91%，缺回波行均fallback，覆盖不表示目标关联准确。丢点恢复要求
+相对clean ADE差<=.25m且连续两次，Radar与original的平均恢复时间均0.092199s，
+未观察加速；滤波6/141行在2s右删失。141为47轨迹×3固定seed，不当作独立样本。
+
+真实PCD路径禁用解码缓存，CUDA同步、固定256key/16warmup，p95为41.56–43.37ms；
+缓存统计路径p95为2.95–4.09ms，二者分开记录，OS文件缓存可能已热。
+完整阶段计时、seed标准差、场景区间、组别结果和来源见 [P5报告](CAUSAL_CONTEXT_PHASE5_RESULTS.md)。
+
+420项pytest通过，Ruff/公开扫描/diff检查通过；独立审查发现的问题均先复现后修复再复核。
+代码提交：9d7a8c1（设计计划）、2d639b5（因果Radar与退化）、a746e2b（缓存审计/训练评估）、
+c93b800（子集恢复ID）、0202e1e（来源一致性与完整统计报告）。全部模型/数据产物位于
+outputs/context/p5且未提交；保留开发worktree，不推送。
+
+P6仍为条件推进：先以P4已有证据的地图和强CV/滤波对照细化门控实验，不因P5弱Corrector
+上的平均改善自动增加Radar编码复杂度或下载更多sensor。P7仍可选。
