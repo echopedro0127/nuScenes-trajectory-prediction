@@ -1,0 +1,3 @@
+radius_m: 4.0
+window_us: 2000000
+sweeps_per_channel: 3
