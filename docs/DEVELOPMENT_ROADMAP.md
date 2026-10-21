@@ -1,6 +1,6 @@
 # 因果在线轨迹预测：分阶段开发路线图
 
-更新日期：2026-10-21。当前状态：P6/P6.1已完成；三seed训练、train_val冻结选择、完整val回归与严格重放审计通过。P7仍可选。
+更新日期：2026-10-21。当前状态：P6/P6.1已完成；P6.2完整train_val候选/特征诊断与三seed重放审计通过。下一项训练另立协议，P7仍可选。
 
 ## 开发入口
 
@@ -8,7 +8,7 @@
 - 开发分支：`feature/causal-context-online`。
 - 工作目录：仓库根目录下 `.worktrees/causal-context-online`。
 - 根目录仍使用 `local/resume-bullets`；简历文档和之前的本地实验提案保留原处。
-- P0–P6.1 的文档、代码与验收记录保留在该开发分支；P2/P3/P5使用mini，P4/P6使用完整trainval，不推送远程。
+- P0–P6.2 的文档、代码与验收记录保留在该开发分支；P2/P3/P5使用mini，P4/P6使用完整trainval，不推送远程。
 
 进入开发目录：
 
@@ -43,6 +43,7 @@ P6见 [实施计划](superpowers/plans/2026-10-20-causal-context-phase6.md) 与
 | P5 | mini Radar 与位置退化实验 | 同扰动对照、速度变换、回波覆盖和恢复时间 | 现有 mini sensor | 已完成（mini实验） |
 | P6 | 质量门控与延迟/缺失实验 | 固定/学习门控对照，输入过旧时可解释 fallback | 完整 trainval 地图包 | 已完成 |
 | P6.1 | 门控归因、短时收缩与跨更新一致性 | 完整消融及准确度/稳定性双方案，train_val冻结后回归val | 复用P6 trainval缓存 | 已完成 |
+| P6.2 | 冻结候选混合空间与质量特征依赖诊断 | 三seed oracle/分层置换、场景统计及完整重放 | 仅完整train_val，不读val | 已完成 |
 | P7 | Camera 或 LiDAR 小规模扩展 | 单模态消融、真实 encoder 耗时、覆盖率 | 现有 mini sensor | 可选 |
 
 P1–P5 是主线；P6 的上下文价值前提已由P4地图对照证据满足，完整实验已完成。P7 根据 P4/P5/P6 的
@@ -492,3 +493,32 @@ jitter仍高于CV。train_val及固定val满足预设稳定性目标，不代表
 种子标准差、消融、置信区间、训练/推理成本和来源见 [P6.1报告](CAUSAL_CONTEXT_PHASE61_RESULTS.md)。
 产物位于outputs/context/p61且未提交，保留本地分支/worktree、不推送。
 下一步优先诊断运动候选与质量特征的增量价值；历史val不是新盲测。P7不自动开始。
+
+
+## P6.2 冻结候选与质量特征诊断验收（2026-10-21）
+
+只读完整train_val6621轨迹/176场景，冻结P6/P6.1全部模型，三seed2027/2028/2029。
+六实际端点/门控及11特征组×3次分层置换，39方法×6条件×11更新×三seed，合计
+51,127,362条度量记录；另有3,932,874组标签使用型oracle ADE/g。全部数值、场景表、
+来源和66条配对场景区间已生产重放核对；未读历史val，也没有新的val提升结果。
+
+| train_val诊断 | ADE/m或ADE差值/m |
+| --- | ---: |
+| 实际P6 learned | 1.800475 |
+| map有限网格+实际g理想混合 | 1.615440 |
+| 实际gate−map理想混合差距 | 0.185034 |
+| 置换运动组−实际gate | +0.018670 |
+| 置换全部特征−实际gate | +0.019713 |
+
+运动组差值场景95% CI=[0.014096,0.023438]m，提示固定gate对运动特征依赖较强。
+理想混合读未来标签，不是可部署收益；置换不是删除/增加特征重训的因果增量。
+age/remaining_time在分层内不变，不能据零差值判无用；当前滤波候选虽jitter低，
+理想混合ADE仍弱于map。FDE/jitter取舍及所有负面证据保留。
+
+458项pytest、Ruff、公开扫描与diff检查通过；旧P6/P6.1绑定源码未改。
+设计a0d6d32、实现7e74ee3。见[设计](superpowers/specs/2026-10-21-causal-context-phase62-design.md)、
+[施工计划](superpowers/plans/2026-10-21-causal-context-phase62.md)、[完整报告](CAUSAL_CONTEXT_PHASE62_RESULTS.md)。
+产物outputs/context/p62未入git；保留本地分支/worktree，不推送。
+
+建议下一项P6.3先冻结有符号纵横向加速度/候选偏差特征与同初始化、同225名义参数、
+同训练预算对照，兼顾ADE/FDE/jitter/尾部。此为待验证方案，尚未实现或训练；不自动启动P7。
