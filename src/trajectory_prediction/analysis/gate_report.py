@@ -202,7 +202,7 @@ def audit_run(root, device=None):
     counts = {s: 0 for s in STRATEGIES}
     digests = {s: (hashlib.sha256(), hashlib.sha256()) for s in STRATEGIES}
     current_pair, expected = None, None
-    for chunk in pd.read_csv(root / "per_update.csv.gz", chunksize=32768):
+    for chunk in pd.read_csv(root / "per_update.csv.gz", chunksize=32768, float_precision="round_trip"):
         if (
             set(chunk.seed) != {p["seed"]}
             or not set(chunk.strategy) <= set(STRATEGIES)
@@ -337,6 +337,7 @@ def report_gate(run_dirs, output_dir, replicates=2000, device=None):
     summaries, groups, recoveries, latencies = [], [], [], []
     for root in run_dirs:
         summary, audited, recovery, latency = audit_run(root, device=device)
+        print(json.dumps({"audited_seed": summary["provenance"]["seed"], "rows": summary["row_count"]}), flush=True)
         summaries.append(summary)
         groups.append(audited)
         recoveries.append(recovery)

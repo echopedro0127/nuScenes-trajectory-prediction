@@ -31,9 +31,11 @@ def fixture():
     maps = {
         "anchor_timestamp_us": np.full(n, 2000000, np.int64),
         "timestamp_us": np.tile(2000000 + np.arange(1, 12, dtype=np.int64) * 500000, (n, 1)),
-        "features": np.ones((n, 11, 1, 2, 4), np.float32),
-        "mask": np.ones((n, 11, 1, 2), bool),
+        "features": np.ones((n, 11, 8, 20, 4), np.float32),
+        "mask": np.ones((n, 11, 8, 20), bool),
     }
+    maps["mask"][:, :, -1, -1] = False
+    maps["features"][:, :, -1, -1] = 0
     original = ResidualCorrector(hidden_dim=8)
     model = InteractionCorrector(deepcopy(original), "map", 8)
     return GateDataset(generate_candidates(arrays, maps, future + 1, original, model))
