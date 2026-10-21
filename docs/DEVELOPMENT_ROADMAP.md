@@ -1,6 +1,6 @@
 # 因果在线轨迹预测：分阶段开发路线图
 
-更新日期：2026-10-21。当前状态：P6/P6.1已完成；P6.2完整train_val候选/特征诊断与三seed重放审计通过。下一项训练另立协议，P7仍可选。
+更新日期：2026-10-22。当前状态：P0–P6.3已完成；P6.3固定RH通过准确度目标与完整历史val重放验收，稳定性保留旧基线。下一轮一致性训练另立协议，P7仍可选。
 
 ## 开发入口
 
@@ -8,7 +8,7 @@
 - 开发分支：`feature/causal-context-online`。
 - 工作目录：仓库根目录下 `.worktrees/causal-context-online`。
 - 根目录仍使用 `local/resume-bullets`；简历文档和之前的本地实验提案保留原处。
-- P0–P6.2 的文档、代码与验收记录保留在该开发分支；P2/P3/P5使用mini，P4/P6使用完整trainval，不推送远程。
+- P0–P6.3 的文档、代码与验收记录保留在该开发分支；P2/P3/P5使用mini，P4/P6使用完整trainval，不推送远程。
 
 进入开发目录：
 
@@ -44,7 +44,7 @@ P6见 [实施计划](superpowers/plans/2026-10-20-causal-context-phase6.md) 与
 | P6 | 质量门控与延迟/缺失实验 | 固定/学习门控对照，输入过旧时可解释 fallback | 完整 trainval 地图包 | 已完成 |
 | P6.1 | 门控归因、短时收缩与跨更新一致性 | 完整消融及准确度/稳定性双方案，train_val冻结后回归val | 复用P6 trainval缓存 | 已完成 |
 | P6.2 | 冻结候选混合空间与质量特征依赖诊断 | 三seed oracle/分层置换、场景统计及完整重放 | 仅完整train_val，不读val | 已完成 |
-| P6.3 | 因果可靠性反馈与逐时域门控 | 前沿调研后设计D/R/H八因素消融，337参数共享head | 复用P6缓存，先train/train_val | 设计提案，未训练 |
+| P6.3 | 因果可靠性反馈与逐时域门控 | 八结构/三seed、冻结RH、完整回归与重放，337参数共享head | 复用P6缓存，train/train_val后固定val | 已完成 |
 | P7 | Camera 或 LiDAR 小规模扩展 | 单模态消融、真实 encoder 耗时、覆盖率 | 现有 mini sensor | 可选 |
 
 P1–P5 是主线；P6 的上下文价值前提已由P4地图对照证据满足，完整实验已完成。P7 根据 P4/P5/P6 的
@@ -521,18 +521,38 @@ age/remaining_time在分层内不变，不能据零差值判无用；当前滤�
 [施工计划](superpowers/plans/2026-10-21-causal-context-phase62.md)、[完整报告](CAUSAL_CONTEXT_PHASE62_RESULTS.md)。
 产物outputs/context/p62未入git；保留本地分支/worktree，不推送。
 
-建议下一项P6.3先冻结有符号纵横向加速度/候选偏差特征与同初始化、同225名义参数、
-同训练预算对照，兼顾ADE/FDE/jitter/尾部。此为待验证方案，尚未实现或训练；不自动启动P7。
+P6.2验收时建议下一项P6.3冻结有符号纵横向加速度/候选偏差特征与同初始化、同225名义参数、
+同训练预算对照，兼顾ADE/FDE/jitter/尾部。该建议后续已扩展完成，见下节P6.3；不自动启动P7。
 
 
-## P6.3 前沿调研与算法设计提案（2026-10-21）
+## P6.3 前沿调研与因果逐时域门控验收（2026-10-21）
 
 已查阅SHARP（CVPR2026）、SEAM（WACV2026）、DeMo/DeMo++、HPNet及SmartRefine的
 论文与官方资料。此前225参数方向特征建议，现扩展为337参数方向D/因果可靠性R/
 逐时域H的八因素设计；新增可训练参数相对P6为176，不改变上游候选或数据来源。
 R只用新到观测兑现的上次预测误差，H允许不同未来点不同g；初始化与P6一致，保留
-缺包/过期硬CV回退。先完成预算匹配的八结构消融，再决定是否推进创新自适应一致性。
+缺包/过期硬CV回退。本轮完成预算匹配八结构消融及条件val；创新自适应一致性留待独立下一轮。
 
-此为设计提案，尚未实施或训练，无新增指标；不将多模态论文minADE与现有剩余时域
-ADE直接比较。见[调研](research/2026-10-21-streaming-motion-forecasting-frontier.md)与
-[设计提案](superpowers/specs/2026-10-21-causal-context-phase63-design.md)。
+已完成24模型/226epoch、八结构×三seed训练，train_val冻结accuracy=RH，stable=旧consistent_010，
+准确度通过推进条件后执行完整历史val。14策略×六条件×11更新×三seed，train_val与val共
+38,314,584条度量及全部逐点权重完成生产重放；生成756条配对场景区间。
+
+| val固定方案 | ADE/m | FDE/m | jitter/m |
+| --- | ---: | ---: | ---: |
+| 旧准确度consistent_short | 1.788697 | 3.829622 | 1.175611 |
+| 新准确度RH | 1.766754 | 3.798661 | 1.185758 |
+| 旧稳定性consistent_010 | 1.789946 | 3.839947 | 1.164413 |
+
+RH相对旧准确度ADE改善1.23%、FDE改善0.81%，jitter增加0.86%，满足预设误差/尾部/jitter约束，
+达到准确度研究目标。ADE差值配对场景95% CI=[−0.026005,−0.018055]m；jitter增加区间也为正。
+没有新的稳定性冠军，不能声称全面优于CV。主要ADE变化来自H，D/R增量较小；337名义参数
+不代表零填充变体有效容量相同。更低ADE的DRH因train_val jitter超限未获选，未据val重选。
+
+478项pytest、Ruff、公开扫描及独立只读审查通过，旧P6/P6.1/P6.2绑定源码未变。
+训练期CuBLAS配置修复后重新运行全部24模型，旧停止试跑不入统计。正式产物outputs/context/p63
+不入git，保留本地分支/worktree、不推送。测量为缓存候选上的单步路径，非端到端感知延迟。
+历史val不是新盲测；不将多模态论文minADE与现有剩余时域ADE直接比较。
+见[调研](research/2026-10-21-streaming-motion-forecasting-frontier.md)、
+[设计](superpowers/specs/2026-10-21-causal-context-phase63-design.md)、
+[施工计划](superpowers/plans/2026-10-21-causal-context-phase63.md)及[完整实验报告](CAUSAL_CONTEXT_PHASE63_RESULTS.md)。
+下一轮优先独立设计RH/H的一致性实验以压低jitter；本轮未自动执行第二轮或SHARP/P7。
