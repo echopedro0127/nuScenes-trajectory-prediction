@@ -3,6 +3,7 @@
 import argparse
 import json
 import math
+import os
 import time
 from pathlib import Path
 
@@ -39,6 +40,13 @@ DEFAULT_SETTINGS = {"epochs": 10, "patience": 3, "batch_size": 4096, "learning_r
     "weight_decay": .0001, "smoothness_weight": .05, "hidden_dim": 16, "input_dim": 19,
     "revision_weight": 0., "candidate": "map"}
 CONFIG = Path(__file__).parents[3] / "configs/models/horizon_gate.yaml"
+
+
+def configure_runtime():
+    current = os.environ.get("CUBLAS_WORKSPACE_CONFIG")
+    if current not in (None, ":4096:8") or (current is None and torch.cuda.is_initialized()):
+        raise ValueError("CuBLAS requires frozen :4096:8 configuration before CUDA initialization")
+    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 
 
 def training_sources():
@@ -107,6 +115,8 @@ def train_horizon(
     ):
         raise ValueError("invalid refinement settings")
     device = device or torch.device("cpu")
+    if device.type == "cuda" and os.environ.get("CUBLAS_WORKSPACE_CONFIG") != ":4096:8":
+        raise ValueError("CuBLAS must be configured before horizon training")
     seed_everything(seed)
     model = HorizonGate(variant, initial).to(device)
     initial_identity = state_fingerprint(model.state_dict())
@@ -122,6 +132,7 @@ def train_horizon(
         "hidden_dim": 16,
         "candidate": train.candidate,
         "input_dim": 19,
+        "cublas_workspace_config": os.environ.get("CUBLAS_WORKSPACE_CONFIG", "not_set"),
         "variant": variant,
     }
     executable = training_sources()
@@ -235,7 +246,8 @@ def load_horizon(path, contract, scenes, device, *, split, variant):
     payload = completed_payload(path.parent)
     m = payload["metadata"]
     if (m.get("architecture") != "horizon_gate_v1" or m.get("source_code_sha256") != training_sources()
-        or m.get("seed") != contract["seed"]):
+        or m.get("seed") != contract["seed"]
+        or m.get("cublas_workspace_config") != ":4096:8"):
         raise ValueError("horizon checkpoint architecture/source/seed mismatch")
     for parent in m["candidate_contracts"].values():
         for key in ("seed", "gate_config", "conditions", "preparation_sources", "p4_training_identity"):
@@ -291,6 +303,7 @@ def main(argv=None):
         parser.add_argument("--"+name, type=Path, required=True)
     parser.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
     args = parser.parse_args(argv)
+    configure_runtime()
     torch.set_num_threads(2)
     settings = load_yaml(CONFIG)
     if settings != {k: DEFAULT_SETTINGS[k] for k in settings}:

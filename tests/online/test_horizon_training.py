@@ -94,3 +94,20 @@ def test_full_initial_metrics_parity_for_all_variants():
     assert set(result) == {"B", "D", "R", "H", "DR", "DH", "RH", "DRH"}
     assert all(row["update_count"] == selection.size for row in result.values())
     assert all(row["max_metric_difference"] <= 1e-6 for row in result.values())
+
+
+def test_cuda_runtime_configuration_precedes_initialization_and_rejects_mixed_setup(monkeypatch):
+    from trajectory_prediction.online import horizon_training as engine
+    assert hasattr(engine, "configure_runtime")
+    monkeypatch.delenv("CUBLAS_WORKSPACE_CONFIG", raising=False)
+    monkeypatch.setattr(torch.cuda, "is_initialized", lambda: False)
+    engine.configure_runtime()
+    import os
+    assert os.environ["CUBLAS_WORKSPACE_CONFIG"] == ":4096:8"
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":16:8")
+    with pytest.raises(ValueError, match="CuBLAS"):
+        engine.configure_runtime()
+    monkeypatch.delenv("CUBLAS_WORKSPACE_CONFIG")
+    monkeypatch.setattr(torch.cuda, "is_initialized", lambda: True)
+    with pytest.raises(ValueError, match="CuBLAS"):
+        engine.configure_runtime()
