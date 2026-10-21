@@ -44,6 +44,7 @@ P6见 [实施计划](superpowers/plans/2026-10-20-causal-context-phase6.md) 与
 | P6 | 质量门控与延迟/缺失实验 | 固定/学习门控对照，输入过旧时可解释 fallback | 完整 trainval 地图包 | 已完成 |
 | P6.1 | 门控归因、短时收缩与跨更新一致性 | 完整消融及准确度/稳定性双方案，train_val冻结后回归val | 复用P6 trainval缓存 | 已完成 |
 | P6.2 | 冻结候选混合空间与质量特征依赖诊断 | 三seed oracle/分层置换、场景统计及完整重放 | 仅完整train_val，不读val | 已完成 |
+| P6.3 | 因果可靠性反馈与逐时域门控 | 前沿调研后设计D/R/H八因素消融，337参数共享head | 复用P6缓存，先train/train_val | 设计提案，未训练 |
 | P7 | Camera 或 LiDAR 小规模扩展 | 单模态消融、真实 encoder 耗时、覆盖率 | 现有 mini sensor | 可选 |
 
 P1–P5 是主线；P6 的上下文价值前提已由P4地图对照证据满足，完整实验已完成。P7 根据 P4/P5/P6 的
@@ -522,3 +523,16 @@ age/remaining_time在分层内不变，不能据零差值判无用；当前滤�
 
 建议下一项P6.3先冻结有符号纵横向加速度/候选偏差特征与同初始化、同225名义参数、
 同训练预算对照，兼顾ADE/FDE/jitter/尾部。此为待验证方案，尚未实现或训练；不自动启动P7。
+
+
+## P6.3 前沿调研与算法设计提案（2026-10-21）
+
+已查阅SHARP（CVPR2026）、SEAM（WACV2026）、DeMo/DeMo++、HPNet及SmartRefine的
+论文与官方资料。此前225参数方向特征建议，现扩展为337参数方向D/因果可靠性R/
+逐时域H的八因素设计；新增可训练参数相对P6为176，不改变上游候选或数据来源。
+R只用新到观测兑现的上次预测误差，H允许不同未来点不同g；初始化与P6一致，保留
+缺包/过期硬CV回退。先完成预算匹配的八结构消融，再决定是否推进创新自适应一致性。
+
+此为设计提案，尚未实施或训练，无新增指标；不将多模态论文minADE与现有剩余时域
+ADE直接比较。见[调研](research/2026-10-21-streaming-motion-forecasting-frontier.md)与
+[设计提案](superpowers/specs/2026-10-21-causal-context-phase63-design.md)。
