@@ -1,6 +1,6 @@
 # 因果在线轨迹预测：分阶段开发路线图
 
-更新日期：2026-10-20。当前状态：P5 mini Radar 五条件三 seed 实验已完成；相对小型Corrector有平均改善，但强CV/滤波更优，P6仍按证据条件推进。
+更新日期：2026-10-21。当前状态：P6 地图包质量门控完整三seed实验与逐行审计已完成；ADE/FDE优于CV，jitter代价明确保留。P7仍可选。
 
 ## 开发入口
 
@@ -8,7 +8,7 @@
 - 开发分支：`feature/causal-context-online`。
 - 工作目录：仓库根目录下 `.worktrees/causal-context-online`。
 - 根目录仍使用 `local/resume-bullets`；简历文档和之前的本地实验提案保留原处。
-- P0–P5 的文档、代码与验收记录保留在该开发分支；P2/P3/P5使用mini，P4使用完整trainval，不推送远程。
+- P0–P6 的文档、代码与验收记录保留在该开发分支；P2/P3/P5使用mini，P4/P6使用完整trainval，不推送远程。
 
 进入开发目录：
 
@@ -28,6 +28,8 @@ P4 见 [实施计划](superpowers/plans/2026-10-20-causal-context-phase4.md) 与
 [实验协议和结果](CAUSAL_CONTEXT_PHASE4_RESULTS.md)。
 P5见 [实施计划](superpowers/plans/2026-10-20-causal-context-phase5.md) 与
 [完整可行性报告](CAUSAL_CONTEXT_PHASE5_RESULTS.md)。
+P6见 [实施计划](superpowers/plans/2026-10-20-causal-context-phase6.md) 与
+[完整门控实验报告](CAUSAL_CONTEXT_PHASE6_RESULTS.md)。
 
 ## 阶段及验收
 
@@ -39,10 +41,10 @@ P5见 [实施计划](superpowers/plans/2026-10-20-causal-context-phase5.md) 与
 | P3 | 邻车历史与 Map+Neighbors 融合 | 历史差分、邻车缺失/排序测试、四组消融通路 | 现有 metadata | 已完成（工程） |
 | P4 | trainval 消融与复现报告 | 相同样本/更新集合、多 seed、分组与延迟报告 | 现有 trainval metadata | 已完成 |
 | P5 | mini Radar 与位置退化实验 | 同扰动对照、速度变换、回波覆盖和恢复时间 | 现有 mini sensor | 已完成（mini实验） |
-| P6 | 质量门控与延迟/缺失实验 | 固定/学习门控对照，输入过旧时可解释 fallback | 前阶段数据 | 条件推进 |
+| P6 | 质量门控与延迟/缺失实验 | 固定/学习门控对照，输入过旧时可解释 fallback | 完整 trainval 地图包 | 已完成 |
 | P7 | Camera 或 LiDAR 小规模扩展 | 单模态消融、真实 encoder 耗时、覆盖率 | 现有 mini sensor | 可选 |
 
-P1–P5 是主线；P6 以至少一种上下文在对照中表现出价值为前提。P7 根据 P4/P5 的
+P1–P5 是主线；P6 的上下文价值前提已由P4地图对照证据满足，完整实验已完成。P7 根据 P4/P5/P6 的
 结果选择一种模态开展，届时再评估完整 trainval sensor 下载需求。
 
 每次“继续”默认推进下一个尚未完成的阶段；不直接跳到所有模态同时训练。
@@ -425,3 +427,39 @@ outputs/context/p5且未提交；保留开发worktree，不推送。
 
 P6仍为条件推进：先以P4已有证据的地图和强CV/滤波对照细化门控实验，不因P5弱Corrector
 上的平均改善自动增加Radar编码复杂度或下载更多sensor。P7仍可选。
+
+
+## P6 完整地图包质量门控验收（2026-10-21）
+
+冻结P4各seed的original/map与固定GRU，训练161参数质量gate，预测=CV+g·(map−CV)。
+完整train25560条/468场景、train_val6621条/176场景，三seed2027/2028/2029；最佳epoch
+为20/12/7，实际完成20/17/12轮。完整val7201条/136场景，六地图包条件×七策略，
+每条件策略79211更新，三seed共9,980,586行，失败0，均通过生产来源验证和逐行重算审计。
+
+| 条件 | learned ADE/m | CV ADE/m | 相对CV下降 |
+| --- | ---: | ---: | ---: |
+| clean | 1.723315 | 1.937731 | 11.07% |
+| delay 500ms | 1.788836 | 1.937731 | 7.68% |
+| delay 1000ms | 1.839944 | 1.937731 | 5.05% |
+| dropout | 1.722902 | 1.937731 | 11.09% |
+| missing | 1.937731 | 1.937731 | 0% |
+| stale | 1.742183 | 1.937731 | 10.09% |
+
+上述为三seed均值。clean learned−CV ADE差−0.214416m，场景95% CI=[−0.263619,−0.168983]；
+先固定三seed平均，再按136场景配对bootstrap2000次。六条件平均ADE：learned1.792485、
+fixed1.913447、CV1.937731m；学习gate相对强CV显示准确度价值。
+
+负面结果：learned jitter在所有非missing条件高于CV，且500ms/1000ms/stale高于fixed；
+不能声称全面提升稳定性。缺包/过期精确CV回退；stale后六步gate=0。dropout恢复均0秒
+由无状态策略在第7包恢复后输入与clean相同决定，不是学到恢复能力的证据。位置仍是干净
+已释放标注观测；age是局部地图查询包时龄。历史val不是新盲测，未据其调超参数。
+
+固定256key、16warmup、CUDA同步的缓存gate单update路径单独测量，明确排除地图查询和
+P4 forward；保存原始尾延迟及背景负载干扰限制。候选离线准备和批量吞吐另报。
+完整指标、seed标准差、72条区间、分组、来源哈希及复现命令见 [P6报告](CAUSAL_CONTEXT_PHASE6_RESULTS.md)。
+
+434项pytest、Ruff、公开扫描和diff检查通过。独立只读审查发现的缓存来源/时间线、
+报告绑定和缺列问题已修复；全量审计额外发现的CPU/CUDA设备及CSV浮点往返问题已先复现
+后修复，未放宽校验。代码提交4c94fd6、d7aef75、a937bda、e2727f8。产物位于
+outputs/context/p6且未提交；保留feature分支和worktree，不推送。下一阶段P7仍为可选，
+不因P6增益自动新增Camera/LiDAR训练或下载完整sensor。
