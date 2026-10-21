@@ -120,7 +120,14 @@ def test_report_stream_rejects_edited_metrics_even_with_updated_artifact_hash(
     root = tmp_path / "evaluation"
     write_gate_outputs(data, results, timings, weights, root, provenance)
     benchmark_gate(data, model, root, torch.device("cpu"))
-    report.audit_run(root)
+    replay = report.evaluate_gate
+
+    def same_execution_device(data, model, *, device):
+        assert device == torch.device("cuda")
+        return replay(data, model, device=torch.device("cpu"))
+
+    monkeypatch.setattr(report, "evaluate_gate", same_execution_device)
+    report.audit_run(root, device=torch.device("cuda"))
     frame = pd.read_csv(root / "per_update.csv.gz")
     frame.loc[0, "ade"] += 1
     frame.to_csv(root / "per_update.csv.gz", index=False, compression="gzip")
@@ -128,4 +135,4 @@ def test_report_stream_rejects_edited_metrics_even_with_updated_artifact_hash(
     summary["sha256"]["per_update.csv.gz"] = sha256_file(root / "per_update.csv.gz")
     (root / "summary.json").write_text(json.dumps(summary))
     with pytest.raises(ValueError, match="metric reconstruction"):
-        report.audit_run(root)
+        report.audit_run(root, device=torch.device("cuda"))

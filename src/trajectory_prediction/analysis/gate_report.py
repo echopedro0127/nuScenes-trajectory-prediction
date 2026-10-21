@@ -190,7 +190,7 @@ def audit_run(root, device=None):
         or summary["row_count"] != data.size * 7
     ):
         raise ValueError("gate evaluation size mismatch")
-    results, _, weights = evaluate_gate(data, model, device=torch.device("cpu"))
+    results, _, weights = evaluate_gate(data, model, device=device or torch.device("cpu"))
     tags = [
         "|".join(tag_maneuvers(describe_motion(t, 0.5), DEFAULT_THRESHOLDS))
         for t in arrays["target"]
