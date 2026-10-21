@@ -1,0 +1,6 @@
+original_epochs: 20
+original_patience: 5
+finetune_epochs: 10
+finetune_patience: 3
+batch_size: 4096
+learning_rate: 0.001
