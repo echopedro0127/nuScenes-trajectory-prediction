@@ -1,6 +1,6 @@
 # 因果在线轨迹预测：分阶段开发路线图
 
-更新日期：2026-10-21。当前状态：P6 地图包质量门控完整三seed实验与逐行审计已完成；ADE/FDE优于CV，jitter代价明确保留。P7仍可选。
+更新日期：2026-10-21。当前状态：P6/P6.1已完成；三seed训练、train_val冻结选择、完整val回归与严格重放审计通过。P7仍可选。
 
 ## 开发入口
 
@@ -8,7 +8,7 @@
 - 开发分支：`feature/causal-context-online`。
 - 工作目录：仓库根目录下 `.worktrees/causal-context-online`。
 - 根目录仍使用 `local/resume-bullets`；简历文档和之前的本地实验提案保留原处。
-- P0–P6 的文档、代码与验收记录保留在该开发分支；P2/P3/P5使用mini，P4/P6使用完整trainval，不推送远程。
+- P0–P6.1 的文档、代码与验收记录保留在该开发分支；P2/P3/P5使用mini，P4/P6使用完整trainval，不推送远程。
 
 进入开发目录：
 
@@ -42,6 +42,7 @@ P6见 [实施计划](superpowers/plans/2026-10-20-causal-context-phase6.md) 与
 | P4 | trainval 消融与复现报告 | 相同样本/更新集合、多 seed、分组与延迟报告 | 现有 trainval metadata | 已完成 |
 | P5 | mini Radar 与位置退化实验 | 同扰动对照、速度变换、回波覆盖和恢复时间 | 现有 mini sensor | 已完成（mini实验） |
 | P6 | 质量门控与延迟/缺失实验 | 固定/学习门控对照，输入过旧时可解释 fallback | 完整 trainval 地图包 | 已完成 |
+| P6.1 | 门控归因、短时收缩与跨更新一致性 | 完整消融及准确度/稳定性双方案，train_val冻结后回归val | 复用P6 trainval缓存 | 已完成 |
 | P7 | Camera 或 LiDAR 小规模扩展 | 单模态消融、真实 encoder 耗时、覆盖率 | 现有 mini sensor | 可选 |
 
 P1–P5 是主线；P6 的上下文价值前提已由P4地图对照证据满足，完整实验已完成。P7 根据 P4/P5/P6 的
@@ -463,3 +464,31 @@ P4 forward；保存原始尾延迟及背景负载干扰限制。候选离线准�
 后修复，未放宽校验。代码提交4c94fd6、d7aef75、a937bda、e2727f8。产物位于
 outputs/context/p6且未提交；保留feature分支和worktree，不推送。下一阶段P7仍为可选，
 不因P6增益自动新增Camera/LiDAR训练或下载完整sensor。
+
+
+## P6.1 完整归因与时序门控验收（2026-10-21）
+
+已按用户批准方向启动，见 [设计](superpowers/specs/2026-10-21-causal-context-phase61-design.md)
+与 [实施计划](superpowers/plans/2026-10-21-causal-context-phase61.md)。十二策略含常数校准、
+train拟合时长/包龄查表、CV+original同容量gate、短时cap、同初始化lambda0/.02/.1微调与
+一致性+cap；只在train_val决定共同tau及准确度/稳定性方案，稳定性ADE容忍度预设1%。
+新增代码均独立模块，P6已绑定源码、缓存和结果保持原样。结果写outputs/context/p61。
+完整三seed训练与val已完成：12策略×6条件×7201轨迹×11更新×3seed，
+共17,109,576条记录；train/train_val校准重新拟合、完整选模网格和所有val指标/权重
+逐元素重放通过。生成180条配对场景bootstrap区间，val未用于重新选择方案。
+
+| 固定方案 | 六条件平均ADE/m | FDE/m | jitter/m |
+| --- | ---: | ---: | ---: |
+| P6 learned | 1.792485 | 3.831412 | 1.181381 |
+| 准确度 consistent_short | 1.788697 | 3.829622 | 1.175611 |
+| 稳定性 consistent_010 | 1.789946 | 3.839947 | 1.164413 |
+
+准确度ADE相对P6仅改善0.21%；稳定性jitter改善1.44%，但FDE增加0.008534m，
+部分尾部误差更差。额外训练本身贡献部分ADE收益，不能全归于一致性正则；两方案
+jitter仍高于CV。train_val及固定val满足预设稳定性目标，不代表全面优于基线。
+
+449项pytest、Ruff、公开扫描与diff检查通过；独立只读审查问题已复现修复并复核。
+新增模块独立，旧P6绑定源码未变。实现提交aba6235、4f14e1a、d586306；完整配置、
+种子标准差、消融、置信区间、训练/推理成本和来源见 [P6.1报告](CAUSAL_CONTEXT_PHASE61_RESULTS.md)。
+产物位于outputs/context/p61且未提交，保留本地分支/worktree、不推送。
+下一步优先诊断运动候选与质量特征的增量价值；历史val不是新盲测。P7不自动开始。
