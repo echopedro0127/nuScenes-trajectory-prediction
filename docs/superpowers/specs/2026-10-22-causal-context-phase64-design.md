@@ -1,6 +1,8 @@
 # P6.4 创新自适应时序一致性
 
 日期2026-10-22，基线58f17ea，分支feature/causal-context-online。
+状态：实验与完整重放完成；revision_fixed的train_val jitter下降0.453%，未达0.5%门槛，未读val、未晋级。
+验收详见[完整报告](../../CAUSAL_CONTEXT_PHASE64_RESULTS.md)。
 授权：用户“继续下一轮”，执行已批准P6.3设计第8节的条件一致性实验；RH已满足推进条件。
 本轮不重新选择结构，不拆分H，不改上游候选，不新增数据/依赖，不启动SHARP或P7。
 

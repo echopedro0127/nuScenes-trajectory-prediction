@@ -1,6 +1,6 @@
 # 因果在线轨迹预测：分阶段开发路线图
 
-更新日期：2026-10-22。当前状态：P0–P6.3已完成；P6.3固定RH通过准确度目标与完整历史val重放验收，稳定性保留旧基线。下一轮一致性训练另立协议，P7仍可选。
+更新日期：2026-10-22。当前状态：P0–P6.4已完成；P6.4一致性实验未达推进门槛，未读val。准确度保留P6.3已验证RH，稳定性保留旧基线。后续强度校准另立协议，P7仍可选。
 
 ## 开发入口
 
@@ -8,7 +8,7 @@
 - 开发分支：`feature/causal-context-online`。
 - 工作目录：仓库根目录下 `.worktrees/causal-context-online`。
 - 根目录仍使用 `local/resume-bullets`；简历文档和之前的本地实验提案保留原处。
-- P0–P6.3 的文档、代码与验收记录保留在该开发分支；P2/P3/P5使用mini，P4/P6使用完整trainval，不推送远程。
+- P0–P6.4 的文档、代码与验收记录保留在该开发分支；P2/P3/P5使用mini，P4/P6使用完整trainval，不推送远程。
 
 进入开发目录：
 
@@ -45,6 +45,7 @@ P6见 [实施计划](superpowers/plans/2026-10-20-causal-context-phase6.md) 与
 | P6.1 | 门控归因、短时收缩与跨更新一致性 | 完整消融及准确度/稳定性双方案，train_val冻结后回归val | 复用P6 trainval缓存 | 已完成 |
 | P6.2 | 冻结候选混合空间与质量特征依赖诊断 | 三seed oracle/分层置换、场景统计及完整重放 | 仅完整train_val，不读val | 已完成 |
 | P6.3 | 因果可靠性反馈与逐时域门控 | 八结构/三seed、冻结RH、完整回归与重放，337参数共享head | 复用P6缓存，train/train_val后固定val | 已完成 |
+| P6.4 | 创新自适应一致性 | 四组/三seed、零组重现、冻结选择与完整生产重放 | 复用P6缓存，仅train/train_val | 已完成（未达推进门槛，未读val） |
 | P7 | Camera 或 LiDAR 小规模扩展 | 单模态消融、真实 encoder 耗时、覆盖率 | 现有 mini sensor | 可选 |
 
 P1–P5 是主线；P6 的上下文价值前提已由P4地图对照证据满足，完整实验已完成。P7 根据 P4/P5/P6 的
@@ -555,4 +556,28 @@ RH相对旧准确度ADE改善1.23%、FDE改善0.81%，jitter增加0.86%，满足
 见[调研](research/2026-10-21-streaming-motion-forecasting-frontier.md)、
 [设计](superpowers/specs/2026-10-21-causal-context-phase63-design.md)、
 [施工计划](superpowers/plans/2026-10-21-causal-context-phase63.md)及[完整实验报告](CAUSAL_CONTEXT_PHASE63_RESULTS.md)。
-下一轮优先独立设计RH/H的一致性实验以压低jitter；本轮未自动执行第二轮或SHARP/P7。
+P6.3验收时建议下一轮独立设计一致性实验；该项已按独立协议完成，见下节P6.4。SHARP/P7未启动。
+
+
+## P6.4 创新自适应一致性验收（2026-10-22）
+
+固定RH结构、P6初始化，完成四组×三seed共12模型/120epoch，训练及逐轮选模28.04分钟。
+仅train/train_val；18策略×六条件×11更新×三seed共23,597,244条度量和权重完成生产重放，
+252条场景配对区间；旧14基线完整核对，三个zero模型状态指纹与P6.3 RH完全一致。
+
+| train_val相对RH | ADE变化 | FDE变化 | jitter变化 |
+| --- | ---: | ---: | ---: |
+| fixed | -0.011896% | +0.010016% | -0.452950% |
+| adaptive | -0.003716% | +0.014652% | -0.348705% |
+| mean | -0.010631% | +0.003226% | -0.282000% |
+
+四组均满足误差/尾部约束，选择fixed但jitter下降未达0.5%推进门槛，advance=false、val_run=false。
+总体fixed−RH jitter配对场景95% CI=[−0.005319,−0.004728]m；区间为负不替代预设推进幅度。
+自适应未超过固定系数；没有新的val或部署收益，准确度继续RH、稳定性继续consistent_010。
+训练创新只用于loss，部署参数/输入不增；位置仍为干净已释放标注，不代表真实跟踪噪声。
+
+493项pytest、Ruff、公开扫描及独立只读审查通过；旧P6至P6.3绑定文件不改。
+协议acab2e7、训练dcbdd6e、评估/报告555c0f2。产物outputs/context/p64不入git，保留本地分支/worktree，不推送。
+见[设计](superpowers/specs/2026-10-22-causal-context-phase64-design.md)、
+[施工计划](superpowers/plans/2026-10-22-causal-context-phase64.md)、[完整报告](CAUSAL_CONTEXT_PHASE64_RESULTS.md)。
+下一步建议独立冻结正则强度/平均系数匹配实验；本轮未执行该建议，SHARP/P7仍不自动开始。
