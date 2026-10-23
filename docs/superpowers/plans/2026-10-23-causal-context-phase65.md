@@ -68,10 +68,10 @@ Files: 新增analysis/strength_report.py、scripts/report_strength_consistency.p
 
 - [x] 全量pytest/Ruff、公开扫描、diff；git diff a3af54a --diff-filter=M -- src scripts tests configs为空。
 - [x] 请求独立只读审查训练、选择、加载身份与统计边界，修复问题需先RED→GREEN；训练前提交冻结源码。
-- [ ] 运行12模型，完成复用须重新校验；正式训练后源码变化不允许继续复用旧身份。
-- [ ] 完整train_val评估→冻结选择→条件val→独立生产重放；失败不放宽检查，不追加系数。
-- [ ] 编写docs/CAUSAL_CONTEXT_PHASE65_RESULTS.md，更新roadmap/spec/plan，明确是否晋级及历史val口径。
-- [ ] 最终只读结果审查、来源/哈希/行数/区间/模型身份/旧源不变核验；本地提交，不推送、merge或清理worktree。
+- [x] 运行12模型，完成复用须重新校验；正式训练后源码变化不允许继续复用旧身份。
+- [x] 完整train_val评估→冻结选择→条件val→独立生产重放；失败不放宽检查，不追加系数。
+- [x] 编写docs/CAUSAL_CONTEXT_PHASE65_RESULTS.md，更新roadmap/spec/plan，明确是否晋级及历史val口径。
+- [x] 最终只读结果审查、来源/哈希/行数/区间/模型身份/旧源不变核验；本地提交，不推送、merge或清理worktree。
 
 ## 执行命令
 
@@ -87,4 +87,11 @@ $env:CUBLAS_WORKSPACE_CONFIG = ':4096:8'
 
 正式路径：cache outputs/context/p6/cache；P6初始化outputs/context/p6/training；P6.1 training/selection在outputs/context/p61；P6.3 training-deterministic/selection/evaluation在outputs/context/p63；P6.4 training/selection/evaluation/report在outputs/context/p64；本轮outputs/context/p65/training、selection、evaluation、report。
 
-训练前验收：506项pytest通过（97.75秒），Ruff通过；独立审查两项身份问题先RED再GREEN修复，实际父报告与zero/RH核验通过。正式训练尚未开始。
+训练前验收：506项pytest通过（97.75秒），Ruff通过；独立审查两项身份问题先RED再GREEN修复，实际父报告与zero/RH核验通过。后续正式实验已完成，详见下方实际验收。
+
+## 实际验收
+
+12模型/120epoch训练，2814.0176003秒（46.90分钟）；22策略完整train_val+历史val共60,208,632条度量/权重生产重放通过，630条区间。
+冻结adaptive_matched_010/advance=true；val jitter下降2.303323%，总体/clean ADE增加0.211944%/0.217628%，均超0.2%上限。
+研究目标未通过，不据val改选其他组。506项pytest/Ruff/公开扫描与独立只读审查通过。
+保持旧推荐与本地分支/worktree，结果和后续建议见[完整报告](../../CAUSAL_CONTEXT_PHASE65_RESULTS.md)。

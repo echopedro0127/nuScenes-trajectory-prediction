@@ -1,6 +1,6 @@
 # 因果在线轨迹预测：分阶段开发路线图
 
-更新日期：2026-10-22。当前状态：P0–P6.4已完成；P6.4一致性实验未达推进门槛，未读val。准确度保留P6.3已验证RH，稳定性保留旧基线。后续强度校准另立协议，P7仍可选。
+更新日期：2026-10-23。当前状态：P0–P6.5实验与完整重放完成；P6.5的val jitter下降2.303%，但总体/clean ADE略超限，未晋级。准确度保留P6.3 RH，稳定性保留consistent_010。后续保守精度约束选模另立协议，P7仍可选。
 
 ## 开发入口
 
@@ -8,7 +8,7 @@
 - 开发分支：`feature/causal-context-online`。
 - 工作目录：仓库根目录下 `.worktrees/causal-context-online`。
 - 根目录仍使用 `local/resume-bullets`；简历文档和之前的本地实验提案保留原处。
-- P0–P6.4 的文档、代码与验收记录保留在该开发分支；P2/P3/P5使用mini，P4/P6使用完整trainval，不推送远程。
+- P0–P6.5 的文档、代码与验收记录保留在该开发分支；P2/P3/P5使用mini，P4/P6使用完整trainval，不推送远程。
 
 进入开发目录：
 
@@ -46,6 +46,7 @@ P6见 [实施计划](superpowers/plans/2026-10-20-causal-context-phase6.md) 与
 | P6.2 | 冻结候选混合空间与质量特征依赖诊断 | 三seed oracle/分层置换、场景统计及完整重放 | 仅完整train_val，不读val | 已完成 |
 | P6.3 | 因果可靠性反馈与逐时域门控 | 八结构/三seed、冻结RH、完整回归与重放，337参数共享head | 复用P6缓存，train/train_val后固定val | 已完成 |
 | P6.4 | 创新自适应一致性 | 四组/三seed、零组重现、冻结选择与完整生产重放 | 复用P6缓存，仅train/train_val | 已完成（未达推进门槛，未读val） |
+| P6.5 | 一致性强度与平均系数匹配 | 四新组/三seed、22策略及315区间/每split | 复用缓存，条件推进历史val | 已完成（val误差超限，未晋级） |
 | P7 | Camera 或 LiDAR 小规模扩展 | 单模态消融、真实 encoder 耗时、覆盖率 | 现有 mini sensor | 可选 |
 
 P1–P5 是主线；P6 的上下文价值前提已由P4地图对照证据满足，完整实验已完成。P7 根据 P4/P5/P6 的
@@ -580,4 +581,30 @@ P6.3验收时建议下一轮独立设计一致性实验；该项已按独立协�
 协议acab2e7、训练dcbdd6e、评估/报告555c0f2。产物outputs/context/p64不入git，保留本地分支/worktree，不推送。
 见[设计](superpowers/specs/2026-10-22-causal-context-phase64-design.md)、
 [施工计划](superpowers/plans/2026-10-22-causal-context-phase64.md)、[完整报告](CAUSAL_CONTEXT_PHASE64_RESULTS.md)。
-下一步建议独立冻结正则强度/平均系数匹配实验；本轮未执行该建议，SHARP/P7仍不自动开始。
+P6.4验收时建议的独立正则强度/平均系数匹配实验，现已完成，见下节P6.5。SHARP/P7未启动。
+
+
+## P6.5 一致性强度校准验收（2026-10-23）
+
+固定RH/P6初始化，四新组×三seed，完成12模型/120epoch，训练与逐轮选模46.90分钟。
+22策略完整train_val/val共60,208,632条度量及权重生产重放通过，630条场景配对区间。
+train_val冻结adaptive_matched_010、advance=true，旧18基线完整核对，随后只进行历史val固定回归。
+
+| 冻结方案val指标 | 实测 | 相对RH |
+| --- | ---: | ---: |
+| ADE/m | 1.770499 | +0.211944% |
+| FDE/m | 3.810212 | +0.304072% |
+| jitter/m | 1.158446 | -2.303323% |
+
+clean ADE增加0.217628%；总体与clean ADE均超0.2%上限，FDE/尾部约束通过。
+研究目标整体失败，不因接近上限而改阈值，不据val换选fixed_010。当前推荐保持RH/consistent_010。
+val jitter差值场景95% CI=[-0.028824,-0.025652]m，ADE差值区间[0.000568,0.006959]m；
+抖动改善伴随精度代价。历史val不是新盲测，不宣称全面优于CV。
+
+同平均系数下，自适应比固定更稳但误差更高；平均系数匹配不是梯度范数匹配。创新仅用于训练，不增部署结构。
+506项pytest、Ruff、公开扫描及独立只读实现/结果审查通过，旧P6至P6.4绑定文件未改。
+协议8562074、施工e4d2023、实现9d1b280；正式产物outputs/context/p65不入git，保留本地分支/worktree，不推送。
+见[设计](superpowers/specs/2026-10-23-causal-context-phase65-design.md)、
+[施工计划](superpowers/plans/2026-10-23-causal-context-phase65.md)与[完整报告](CAUSAL_CONTEXT_PHASE65_RESULTS.md)。
+下一步建议独立设计保守精度余量/Pareto checkpoint选择；新选择只在train/train_val冻结。
+若据历史val选用本轮其他组，只能标为事后候选，需上游也未见的新场景验证；本轮不自动开始后续实验或P7。

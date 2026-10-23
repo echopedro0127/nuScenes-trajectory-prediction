@@ -1,7 +1,8 @@
 # P6.5 一致性强度校准与平均系数匹配设计
 
 日期：2026-10-23。分支feature/causal-context-online，基线a3af54a。
-状态：用户已批准；实现与训练前验收通过，正式训练尚未开始，未访问新的val结果。
+状态：实验与完整重放验收完成；冻结adaptive_matched_010通过train_val推进，但val总体/clean ADE超限，研究目标未通过、不晋级。
+完整结果见[报告](../../CAUSAL_CONTEXT_PHASE65_RESULTS.md)。
 用户已要求继续下一阶段并确认本设计；本文件冻结系数、预算和晋级规则。
 
 ## 1. 问题与路线选择
