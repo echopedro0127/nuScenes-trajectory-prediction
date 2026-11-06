@@ -5,14 +5,18 @@
 冻结的原train.py从头拟合；只使用fit/select，不读取holdout预测指标。
 **Tech Stack:** Python、NumPy、PyYAML、PyTorch、pytest。
 
+执行记录：2026-11-07完成。协议0078e9d，实现5f8d2a7；541项测试通过；新GRU完成
+80epoch，best72，select重载核验通过。仅GRU上游完成，holdout未进行预测评估。
+见[阶段结果](../../CAUSAL_CONTEXT_INDEPENDENT_UPSTREAM_RESULTS.md)。
+
 见[设计](../specs/2026-11-07-causal-context-independent-upstream-design.md)。
 
-- [ ] 先写tests/data/test_independent_split.py，覆盖分组/键/来源和输出拒绝；运行RED。
-- [ ] 实现data/independent_split.py及scripts/prepare_independent_validation.py。
-- [ ] 聚焦与全量测试、Ruff、公开扫描，冻结实现后运行真实划分准备。
-- [ ] 检查真实scene/log/key无交叉、旧GRU暴露和缓存/config身份，不计算holdout误差。
-- [ ] 调用原train.py，只用fit/select，从头训练seed2027的GRU，上限80epoch/早停12。
-- [ ] 核对新checkpoint元数据和来源，形成阶段报告，标明仅GRU上游已重训，下游未完成。
+- [x] 先写tests/data/test_independent_split.py，覆盖分组/键/来源和输出拒绝；运行RED。
+- [x] 实现data/independent_split.py及scripts/prepare_independent_validation.py。
+- [x] 聚焦与全量测试、Ruff、公开扫描，冻结实现后运行真实划分准备。
+- [x] 检查真实scene/log/key无交叉、旧GRU暴露和缓存/config身份，不计算holdout误差。
+- [x] 调用原train.py，只用fit/select，从头训练seed2027的GRU，上限80epoch/早停12。
+- [x] 核对新checkpoint元数据和来源，形成阶段报告，标明仅GRU上游已重训，下游未完成。
 
 开发worktree使用原完整环境，PYTHONPATH=src。所有pytest使用outputs下独占UUID临时目录。
 

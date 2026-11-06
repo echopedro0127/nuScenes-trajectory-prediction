@@ -1,6 +1,6 @@
 # 因果在线轨迹预测：分阶段开发路线图
 
-更新日期：2026-11-07。当前状态：P6.6B三seed/30epoch真实训练与约束checkpoint选择完成；只1/3seed换选，相对ADE-best额外jitter下降0.1262%，伴随小幅误差代价，无新val评估。准确度保留P6.3 RH，稳定性保留consistent_010；P7未启动。
+更新日期：2026-11-07。当前状态：P6.6C/1完成log互斥新划分、旧上游暴露审计和seed2027 GRU从头重训；holdout未进行预测评估，下游map/gate/RH链尚未重建。旧协议推荐RH/consistent_010不变；P7未启动。
 
 ## 开发入口
 
@@ -637,3 +637,19 @@ jitter -1.420318%；clean ADE -0.041145%、clean FDE p95 +0.187020%，均相对R
 产物outputs/context/p66-checkpoint不入Git，不推送、不改简历。
 见[完整报告](CAUSAL_CONTEXT_PHASE66_CHECKPOINT_RESULTS.md)。下一步若要验证独立收益，
 须事前留出上游未见场景并重新训练相关上游；当前不自动开展或开启P7。
+
+## P6.6C/1 独立划分与GRU上游重训（2026-11-07）
+
+从原train的468场景/32log按固定SHA256规则分成fit/select/holdout，scene/log/key均互斥。
+fit14,445轨迹/291场景/22log；select7,786/104/4；holdout3,329/73/6。
+73个新holdout场景全部曾进入旧GRU训练来源，因此新协议不能复用旧上游和旧候选缓存。
+
+新GRU seed2027从头训练80epoch，best为72；只在新select重载核验，ADE4.208823m、
+FDE10.029098m，与日志精确一致。新模型拟合/选模与holdout场景交集为0；没有holdout
+预测评估。原轨迹特征为逐轨迹差分，不含旧train拟合的mean/std统计。
+
+541项pytest、Ruff、公开扫描通过。协议0078e9d，实现5f8d2a7。输出位于
+outputs/context/p66-independent，不入Git、不推送、不改简历。
+见[完整阶段报告](CAUSAL_CONTEXT_INDEPENDENT_UPSTREAM_RESULTS.md)。当前仅GRU完成隔离；
+下一步新GRU fit/select预测、地图/门控链重建与重训。新heldout只有6个log，完整验证
+需保留该分组限制；不能把本阶段select指标写成独立泛化成果。
