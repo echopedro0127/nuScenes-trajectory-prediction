@@ -1,6 +1,6 @@
 # 因果在线轨迹预测：分阶段开发路线图
 
-更新日期：2026-10-23。当前状态：P0–P6.5实验与完整重放完成；P6.5的val jitter下降2.303%，但总体/clean ADE略超限，未晋级。准确度保留P6.3 RH，稳定性保留consistent_010。后续保守精度约束选模另立协议，P7仍可选。
+更新日期：2026-11-06。当前状态：P0–P6.5实验与完整重放完成；P6.6A已完成train_val保守精度余量/Pareto选模诊断，无新训练或val评估。准确度保留P6.3 RH，稳定性保留consistent_010；P7未启动。
 
 ## 开发入口
 
@@ -608,3 +608,16 @@ val jitter差值场景95% CI=[-0.028824,-0.025652]m，ADE差值区间[0.000568,0
 [施工计划](superpowers/plans/2026-10-23-causal-context-phase65.md)与[完整报告](CAUSAL_CONTEXT_PHASE65_RESULTS.md)。
 下一步建议独立设计保守精度余量/Pareto checkpoint选择；新选择只在train/train_val冻结。
 若据历史val选用本轮其他组，只能标为事后候选，需上游也未见的新场景验证；本轮不自动开始后续实验或P7。
+
+## P6.6A 保守精度余量/Pareto选模诊断（2026-11-06）
+
+复用P6.5已冻结模型的396行train_val条件与尾部汇总，核对三seed来源并精确重建选择表。
+ADE余量收紧至0.05%，选中adaptive_matched_005：ADE +0.015122%、FDE +0.084329%、
+jitter -1.420318%；clean ADE -0.041145%、clean FDE p95 +0.187020%，均相对RH。
+六候选都在五维Pareto前沿；诊断表明仍需要明确的精度约束，而不是Pareto成员资格。
+
+这属于回顾性选模诊断，不是新训练或新盲测；advance=false、val_run=false，不替换推荐。
+520项pytest、Ruff、公开扫描通过，旧源码/测试/配置与结果保持原内容。
+协议03531f5，实现0e77d95；产物outputs/context/p66-selection不入Git，不推送、不改简历。
+见[P6.6A结果](CAUSAL_CONTEXT_PHASE66_SELECTION_RESULTS.md)。下一步为独立设计保守精度约束
+下的新checkpoint训练实验，当前不自动重训或开启P7。
