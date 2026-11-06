@@ -1,6 +1,6 @@
 # 因果在线轨迹预测：分阶段开发路线图
 
-更新日期：2026-11-06。当前状态：P0–P6.5实验与完整重放完成；P6.6A已完成train_val保守精度余量/Pareto选模诊断，无新训练或val评估。准确度保留P6.3 RH，稳定性保留consistent_010；P7未启动。
+更新日期：2026-11-07。当前状态：P6.6B三seed/30epoch真实训练与约束checkpoint选择完成；只1/3seed换选，相对ADE-best额外jitter下降0.1262%，伴随小幅误差代价，无新val评估。准确度保留P6.3 RH，稳定性保留consistent_010；P7未启动。
 
 ## 开发入口
 
@@ -621,3 +621,19 @@ jitter -1.420318%；clean ADE -0.041145%、clean FDE p95 +0.187020%，均相对R
 协议03531f5，实现0e77d95；产物outputs/context/p66-selection不入Git，不推送、不改简历。
 见[P6.6A结果](CAUSAL_CONTEXT_PHASE66_SELECTION_RESULTS.md)。下一步为独立设计保守精度约束
 下的新checkpoint训练实验，当前不自动重训或开启P7。
+
+## P6.6B 保守精度约束checkpoint训练（2026-11-07）
+
+三seed/30epoch真实训练与全部epoch保存完成；ADE-best均为10，约束选择为10/9/10。
+三个ADE-best状态指纹精确复现P6.5；所选模型完整train_val重放、33个checkpoint与输出
+身份的独立核验通过。所选候选逐seed均满足事前冻结的精度上限。
+
+约束选择三seed平均ADE/FDE/jitter为1.773848/3.888764/1.090729m；相对RH变化
++0.028793%/+0.097570%/-1.544722%，但相对同轨迹ADE-best的额外jitter下降仅0.126197%，
+伴随ADE增加0.013669%。仅seed2028改变选择，工程验收不等于独立泛化收益。
+
+534项pytest、Ruff、公开扫描通过；协议0a0b36f、实现c379c52。训练及逐轮选模
+997.868秒，不含输入核验与最终重放。无新val评估，推荐RH/consistent_010不变。
+产物outputs/context/p66-checkpoint不入Git，不推送、不改简历。
+见[完整报告](CAUSAL_CONTEXT_PHASE66_CHECKPOINT_RESULTS.md)。下一步若要验证独立收益，
+须事前留出上游未见场景并重新训练相关上游；当前不自动开展或开启P7。
