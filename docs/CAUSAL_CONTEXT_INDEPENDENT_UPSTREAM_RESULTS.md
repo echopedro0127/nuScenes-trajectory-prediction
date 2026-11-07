@@ -117,8 +117,9 @@ gru-seed-2027目录。没有--resume。重跑使用新输出根，不能覆盖�
 
 ## 下一阶段
 
-新数据划分与新GRU可以供后续训练链使用。下一步生成新GRU的fit/select预测，按新
-key/时间/配置重建地图上下文与候选，重训map corrector、quality gate、RH及一致性head。
+新GRU的fit/select预测已生成并核验，地图/邻车上下文准备进度见
+[P6.6C/2报告](CAUSAL_CONTEXT_INDEPENDENT_CONTEXT_RESULTS.md)。后续按新
+key/时间/配置重建候选，重训map corrector、quality gate、RH及一致性head。
 完整配置与模型选择冻结后才考虑holdout预测评估，不得直接套用旧候选缓存或旧权重。
 
 这是现有数据的重划分泛化诊断，不是从未用于研究的新采集盲测。研究者已知旧实验

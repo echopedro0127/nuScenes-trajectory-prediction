@@ -651,5 +651,6 @@ FDE10.029098m，与日志精确一致。新模型拟合/选模与holdout场景�
 541项pytest、Ruff、公开扫描通过。协议0078e9d，实现5f8d2a7。输出位于
 outputs/context/p66-independent，不入Git、不推送、不改简历。
 见[完整阶段报告](CAUSAL_CONTEXT_INDEPENDENT_UPSTREAM_RESULTS.md)。当前仅GRU完成隔离；
-下一步新GRU fit/select预测、地图/门控链重建与重训。新heldout只有6个log，完整验证
+新GRU fit/select预测已导出并核验，地图/邻车上下文已重建并通过完整重载验收，见
+[P6.6C/2进度](CAUSAL_CONTEXT_INDEPENDENT_CONTEXT_RESULTS.md)。后续地图/门控链仍需重训。新heldout只有6个log，完整验证
 需保留该分组限制；不能把本阶段select指标写成独立泛化成果。
