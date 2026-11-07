@@ -54,4 +54,4 @@ fit 地图覆盖 158,811/158,895 次更新，邻车覆盖 145,853/158,895；sele
 holdout 的 context/predictions 子目录均不存在；未执行 holdout 预测与误差评价。
 本阶段没有修改模型或数据准备源代码。输出不入 Git，不推送 GitHub，不改简历。完整独立训练链仍未完成。
 
-下一步冻结地图修正器训练预算，并为自定义 fit/select 角色增加独立训练入口（旧 CLI 固定为 train/train_val，不直接套用）。后续 quality gate、RH、一致性 head 均需沿新 fit/select 链重训；配置冻结后才可开展 holdout 一次性评价。
+地图修正器独立入口与本轮重训现已完成，见[P6.6C/3结果](CAUSAL_CONTEXT_INDEPENDENT_MAP_RESULTS.md)。后续 quality gate、RH、一致性 head 均需沿新 fit/select 链重训；配置冻结后才可开展 holdout 一次性评价。

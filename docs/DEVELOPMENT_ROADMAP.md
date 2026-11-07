@@ -654,3 +654,12 @@ outputs/context/p66-independent，不入Git、不推送、不改简历。
 新GRU fit/select预测已导出并核验，地图/邻车上下文已重建并通过完整重载验收，见
 [P6.6C/2进度](CAUSAL_CONTEXT_INDEPENDENT_CONTEXT_RESULTS.md)。后续地图/门控链仍需重训。新heldout只有6个log，完整验证
 需保留该分组限制；不能把本阶段select指标写成独立泛化成果。
+
+## P6.6C/3 新划分地图修正器重训（2026-11-07）
+
+独立入口保留真实fit/select与新GRU来源，不改旧协议绑定源码。从头训练original/map两阶段，
+seed2027、每阶段最多20epoch，best均为20；训练及逐epoch选择耗时87.826秒。
+新select上的同口径ADE为2.603349→2.421936m（降低6.9684%），FDE为4.881750→4.556826m。
+完成marker/源码/输入哈希、冻结fallback及独立重载复算均通过；全量549项pytest、Ruff与公开扫描通过。
+这是单seed选择集诊断，未完成容量匹配或holdout评价。后续需新候选缓存与quality gate/RH/一致性重训。
+见[阶段报告](CAUSAL_CONTEXT_INDEPENDENT_MAP_RESULTS.md)。输出仍在outputs/context/p66-independent，不推送、不改简历。
