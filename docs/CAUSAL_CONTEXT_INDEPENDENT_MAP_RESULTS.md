@@ -64,6 +64,6 @@ python scripts/train_independent_map.py --output-root outputs/context/p66-indepe
 
 ## 下一步及限制
 
-需要为新模型格式构建独立候选缓存入口，再沿新fit/select重训quality gate、RH和一致性head。
+新模型格式的独立候选缓存入口与六条件缓存现已完成，见[P6.6C/4报告](CAUSAL_CONTEXT_INDEPENDENT_CANDIDATES_RESULTS.md)。下一步沿新fit/select重训quality gate、RH和一致性head。
 后续超参数和模型选择冻结后才考虑一次性holdout评价。目前仅单seed、select只有4个log，无置信区间或跨seed泛化结论；也未完成容量匹配对照。
 旧RH/consistent_010历史推荐不因本阶段select结果而自动替换，P7未启动。

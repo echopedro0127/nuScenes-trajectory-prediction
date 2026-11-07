@@ -663,3 +663,11 @@ seed2027、每阶段最多20epoch，best均为20；训练及逐epoch选择耗时
 完成marker/源码/输入哈希、冻结fallback及独立重载复算均通过；全量549项pytest、Ruff与公开扫描通过。
 这是单seed选择集诊断，未完成容量匹配或holdout评价。后续需新候选缓存与quality gate/RH/一致性重训。
 见[阶段报告](CAUSAL_CONTEXT_INDEPENDENT_MAP_RESULTS.md)。输出仍在outputs/context/p66-independent，不推送、不改简历。
+
+## P6.6C/4 独立六条件候选缓存（2026-11-07）
+
+新GRU/original/map沿新fit/select生成clean、0.5/1s延迟、dropout、missing、stale候选，
+共22,231轨迹、244,541更新、1,467,246条件更新。条件是同一批轨迹的回放，不是新增独立样本。
+两个角色的发布前审计及独立重载全量候选重算均通过；源代码冻结于ba04d86，全量557项测试、Ruff、公开扫描通过。
+输出outputs/context/p66-independent/candidates，holdout未生成预测或候选，尚无新门控性能结论。
+见[报告](CAUSAL_CONTEXT_INDEPENDENT_CANDIDATES_RESULTS.md)。下一步独立quality gate训练，随后RH/一致性head重训。

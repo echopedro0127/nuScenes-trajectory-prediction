@@ -10,7 +10,9 @@
 每条轨迹11次更新，每次只向模型释放当时位置与已到达的地图包。future_xy仅用于逐步释放标注观测及单独的训练/评价标签，不输入未来标签。
 输出outputs/context/p66-independent/candidates；拒绝已有目录，不恢复、不覆盖。先生成全部数组并audit_candidates全量重算original/map，再发布schema/哈希校验的manifest；验收重载两组，核对来源、缓存数组和候选重算。
 
-- [ ] 新测试验证holdout/错角色、旧或错base模型、错地图来源和错scene拒绝，运行RED。
-- [ ] 实现独立入口及loader；在新测试中覆盖真实候选保存/重载和篡改拒绝，运行GREEN。
-- [ ] 全量pytest、Ruff、公开扫描通过后冻结源码，生成fit/select真实缓存。
-- [ ] 重载与候选重算验收，记录样本/条件/更新数、模型/缓存哈希、耗时及边界；完整独立链仍未完成。
+- [x] 新测试验证holdout/错角色、旧或错base模型、错地图来源和错scene拒绝，运行RED。
+- [x] 实现独立入口及loader；在新测试中覆盖真实候选保存/重载和篡改拒绝，运行GREEN。
+- [x] 全量pytest、Ruff、公开扫描通过后冻结源码，生成fit/select真实缓存。
+- [x] 重载与候选重算验收，记录样本/条件/更新数、模型/缓存哈希、耗时及边界；完整独立链仍未完成。
+
+实现ba04d86，557项测试通过；两个角色生成与独立全量重算验收完成。见[结果报告](../../CAUSAL_CONTEXT_INDEPENDENT_CANDIDATES_RESULTS.md)。
