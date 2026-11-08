@@ -679,3 +679,12 @@ seed2027、每阶段最多20epoch，best均为20；训练及逐epoch选择耗时
 gate相对CV选择集ADE降低4.9966%；missing权重严格0并等于CV回退。训练加每epoch select耗时113.759秒。
 这仍是单seed/4个select log诊断，不是独立测试收益；RH和一致性仍需重训，holdout未评价，旧历史推荐不变。
 见[阶段报告](CAUSAL_CONTEXT_INDEPENDENT_GATE_RESULTS.md)，产物outputs/context/p66-independent/gate-training/seed-2027，不推送、不改简历。
+
+## P6.6C/6 独立RH重训（2026-11-09）
+
+从新gate初始化337参数RH，初始select权重/指标最大差0；固定10epoch预算，best10。
+相对新gate，select ADE1.992875→1.977675m（-0.7627%）、FDE4.272785→4.259936m（-0.3007%）、jitter1.270522→1.264345（-0.4862%）。
+独立实际HorizonDataset身份、初始状态和完整逐更新指标复算通过，缺包严格CV回退；565项pytest、Ruff与公开扫描通过，源码6f92374。
+这是单seed/4个select log、无容量/额外轮数匹配的延续训练诊断，不能宣称独立测试或R/H因果增益。
+训练加每epoch select138.284秒；一致性head仍需重训，holdout封存，历史推荐不变。
+见[报告](CAUSAL_CONTEXT_INDEPENDENT_HORIZON_RESULTS.md)。输出outputs/context/p66-independent/horizon-training/seed-2027/RH，不推送、不改简历。

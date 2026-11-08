@@ -75,7 +75,7 @@ python scripts/train_independent_gate.py --output-root outputs/context/p66-indep
 
 ## 后续边界
 
-下一步沿新fit/select重训RH，再推进一致性head。完整配置和模型选择冻结后才能考虑一次性holdout评价。
+新RH现已重训并通过独立验收，见[P6.6C/6报告](CAUSAL_CONTEXT_INDEPENDENT_HORIZON_RESULTS.md)。下一步推进一致性head；完整配置和模型选择冻结后才能考虑一次性holdout评价。
 本轮只做单seed、4个select log的选择集诊断，无容量匹配、跨seed置信区间或独立测试结论。
 位置观测仍是每0.5秒释放的标注位置，未加入真实感知误差，也未使用Camera/LiDAR/Radar特征。
 旧RH/consistent_010历史推荐不因本轮选择集指标自动替换；P7未启动。
