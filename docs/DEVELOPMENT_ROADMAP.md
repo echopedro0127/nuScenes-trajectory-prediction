@@ -671,3 +671,11 @@ seed2027、每阶段最多20epoch，best均为20；训练及逐epoch选择耗时
 两个角色的发布前审计及独立重载全量候选重算均通过；源代码冻结于ba04d86，全量557项测试、Ruff、公开扫描通过。
 输出outputs/context/p66-independent/candidates，holdout未生成预测或候选，尚无新门控性能结论。
 见[报告](CAUSAL_CONTEXT_INDEPENDENT_CANDIDATES_RESULTS.md)。下一步独立quality gate训练，随后RH/一致性head重训。
+
+## P6.6C/5 独立quality gate重训（2026-11-09）
+
+独立入口复用既有161参数门控，从新候选训练16epoch早停，best11。实现dbbb285，全量563项测试、Ruff和公开扫描通过。
+独立重载来源/源码/实际数据fingerprint重算run identity与逐条件指标均通过；六条件select均值gate ADE/FDE为1.992875/4.272785m，CV为2.097688/4.576311m。
+gate相对CV选择集ADE降低4.9966%；missing权重严格0并等于CV回退。训练加每epoch select耗时113.759秒。
+这仍是单seed/4个select log诊断，不是独立测试收益；RH和一致性仍需重训，holdout未评价，旧历史推荐不变。
+见[阶段报告](CAUSAL_CONTEXT_INDEPENDENT_GATE_RESULTS.md)，产物outputs/context/p66-independent/gate-training/seed-2027，不推送、不改简历。

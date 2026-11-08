@@ -64,6 +64,6 @@ python scripts/prepare_independent_candidates.py --output-root outputs/context/p
 
 ## 后续边界
 
-下一步冻结独立quality gate训练预算，适配新角色与候选合同；旧门控训练入口依赖旧P6验证器，不能直接套用。
-随后仍需RH和一致性head沿新fit/select训练，再冻结完整系统配置，才可考虑一次性holdout评价。
+独立quality gate入口与本轮重训现已完成，见[P6.6C/5报告](CAUSAL_CONTEXT_INDEPENDENT_GATE_RESULTS.md)。
+后续仍需RH和一致性head沿新fit/select训练，再冻结完整系统配置，才可考虑一次性holdout评价。
 当前仅seed2027链、select4log、holdout6log，仍不具备独立测试收益或跨seed统计结论；旧RH/consistent_010历史推荐不变。
