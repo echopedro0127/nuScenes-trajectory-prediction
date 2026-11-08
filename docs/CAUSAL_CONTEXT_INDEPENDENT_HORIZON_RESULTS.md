@@ -69,5 +69,5 @@ python scripts/train_independent_horizon.py --output-root outputs/context/p66-in
 
 ## 下一步
 
-沿新RH与候选重训一致性head，在fit/select冻结完整配置后才考虑一次性holdout评价。
+新候选与gate同起点的一致性双臂重训已完成，zero精确复现新RH，见[P6.6C/7报告](CAUSAL_CONTEXT_INDEPENDENT_CONSISTENCY_RESULTS.md)。下一步在fit/select冻结完整配置，再考虑一次性holdout评价。
 当前只有单seed、4个select log，不能给出独立测试或跨seed置信结论；旧RH/consistent_010历史推荐暂不替换，P7未启动。

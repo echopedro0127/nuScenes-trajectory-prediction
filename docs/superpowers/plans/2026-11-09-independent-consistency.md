@@ -9,9 +9,11 @@
 要求revision_0全部权重与本轮RH一致，排除额外轮数/随机初始化差异；adaptive相对该对照分析。未跑固定/均值匹配正则臂，不主张创新权重优于其他正则。
 不追加预算，不改历史推荐，不运行holdout。
 
-- [ ] 写端到端测试并确认RED：新gate/RH来源、短双臂训练、zero精确复现RH、错角色/身份与覆盖拒绝。
-- [ ] 独立训练/重载入口；绑定新gate与RH、候选合同和源码，重载指标/缺包回退并发布marker。
-- [ ] 全量pytest、Ruff、公开扫描通过后冻结源码，执行两个真实训练臂。
-- [ ] 独立重载与实际数据身份/完整指标重算，报告ADE/FDE/jitter及条件差异，保留单seed选择集边界。
+- [x] 写端到端测试并确认RED：新gate/RH来源、短双臂训练、zero精确复现RH、错角色/身份与覆盖拒绝。
+- [x] 独立训练/重载入口；绑定新gate与RH、候选合同和源码，重载指标/缺包回退并发布marker。
+- [x] 全量pytest、Ruff、公开扫描通过后冻结源码，执行两个真实训练臂。
+- [x] 独立重载与实际数据身份/完整指标重算，报告ADE/FDE/jitter及条件差异，保留单seed选择集边界。
+
+实现a58bb6d，566项测试通过；两臂10epoch/best10，zero逐参数复现RH，独立来源/实际数据身份/完整指标审计通过。见[结果报告](../../CAUSAL_CONTEXT_INDEPENDENT_CONSISTENCY_RESULTS.md)。
 
 输出outputs/context/p66-independent/consistency-training/seed-2027/{revision_0,revision_adaptive}；完整配置冻结后再考虑holdout。

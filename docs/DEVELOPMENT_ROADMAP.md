@@ -688,3 +688,12 @@ gate相对CV选择集ADE降低4.9966%；missing权重严格0并等于CV回退。
 这是单seed/4个select log、无容量/额外轮数匹配的延续训练诊断，不能宣称独立测试或R/H因果增益。
 训练加每epoch select138.284秒；一致性head仍需重训，holdout封存，历史推荐不变。
 见[报告](CAUSAL_CONTEXT_INDEPENDENT_HORIZON_RESULTS.md)。输出outputs/context/p66-independent/horizon-training/seed-2027/RH，不推送、不改简历。
+
+## P6.6C/7 独立创新量加权一致性（2026-11-09）
+
+新gate同起点训练revision_0和revision_adaptive（lambda0/0.02），各10epoch/best10。
+zero全部权重和指标精确复现新RH，排除额外轮数/不同初始化；adaptive select ADE1.977514m、FDE4.260644m、jitter1.260875。
+相对zero/RH，ADE -0.00814%、FDE +0.01662%、jitter -0.27441%，属于很小的精度/稳定性权衡，不能宣称全面提升或替换历史推荐。
+两臂来源/源码/实际数据运行身份和完整指标独立重算通过；566项pytest、Ruff、公开扫描通过，实现a58bb6d。
+训练加逐epoch select合计302.734秒；缺包严格CV回退，holdout未评价。未跑固定/均值匹配正则，单seed/4个select log限制不变。
+见[报告](CAUSAL_CONTEXT_INDEPENDENT_CONSISTENCY_RESULTS.md)。下一步冻结模型选择及一次性holdout协议。产物不推送、不改简历。
