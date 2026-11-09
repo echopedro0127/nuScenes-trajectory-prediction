@@ -63,6 +63,6 @@ python scripts/train_independent_consistency.py --output-root outputs/context/p6
 ## 后续边界
 
 独立GRU、original/map、gate、RH及本轮一致性双臂均已重训；完整独立评价尚未完成。
-下一步应冻结模型选择、指标与一次性holdout评价协议，再准备holdout所需的新预测/上下文/候选；不能看holdout误差后重新调参选模。
+模型选择、指标与一次性holdout协议现已冻结并独立核验，见[P6.6C/8报告](CAUSAL_CONTEXT_INDEPENDENT_HOLDOUT_PROTOCOL.md)。下一步准备holdout所需的新预测/上下文/候选；不能看holdout误差后重新调参选模。
 本轮不自动替换历史RH/consistent_010推荐。仅单seed、4个select log且为已知数据重划分，研究者已知历史结果；仍需保留该局限。
 位置来自每0.5秒释放的标注，未使用Camera/LiDAR/Radar特征或真实跟踪噪声。P7未启动。

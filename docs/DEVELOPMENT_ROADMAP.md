@@ -697,3 +697,12 @@ zero全部权重和指标精确复现新RH，排除额外轮数/不同初始化�
 两臂来源/源码/实际数据运行身份和完整指标独立重算通过；566项pytest、Ruff、公开扫描通过，实现a58bb6d。
 训练加逐epoch select合计302.734秒；缺包严格CV回退，holdout未评价。未跑固定/均值匹配正则，单seed/4个select log限制不变。
 见[报告](CAUSAL_CONTEXT_INDEPENDENT_CONSISTENCY_RESULTS.md)。下一步冻结模型选择及一次性holdout协议。产物不推送、不改简历。
+
+## P6.6C/8 Holdout协议与模型锁（2026-11-09）
+
+在第一次新holdout推理前冻结RH主模型、CV主对照、六条件ADE主指标；log级配对bootstrap5000次/seed20271109，95%区间上界<0才支持RH优于CV。
+次要original/map/gate/adaptive完整描述，不据holdout改主模型。只有6个log，明确区间稳定性与已知数据重划分限制。
+协议adbc5d7c948a57c7e76173a54cb481d551842b8b80416309d8a823327ccb1231绑定33个实验文件与130个源码/配置/设计文件；冻结与独立重验通过。
+最终实现91e22c8，全量573项pytest、Ruff及公开扫描通过。真实holdout预测/上下文/候选/评分尚未生成。
+见[报告](CAUSAL_CONTEXT_INDEPENDENT_HOLDOUT_PROTOCOL.md)及本地outputs/context/p66-independent/holdout-protocol。
+下一步新执行源码清单绑定此锁，再准备一次性holdout推理评价；不推送、不改简历。
