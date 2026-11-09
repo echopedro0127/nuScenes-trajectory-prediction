@@ -706,3 +706,13 @@ zero全部权重和指标精确复现新RH，排除额外轮数/不同初始化�
 最终实现91e22c8，全量573项pytest、Ruff及公开扫描通过。真实holdout预测/上下文/候选/评分尚未生成。
 见[报告](CAUSAL_CONTEXT_INDEPENDENT_HOLDOUT_PROTOCOL.md)及本地outputs/context/p66-independent/holdout-protocol。
 下一步新执行源码清单绑定此锁，再准备一次性holdout推理评价；不推送、不改简历。
+
+## P6.6C/9 固定holdout评价完成（2026-11-09）
+
+按协议adbc5d7c…7ccb1231执行6策略/6条件、3,329轨迹/73scene/6log，新增实现7ccffc4在第一次推理前绑定；未训练、换主模型或改统计。
+RH主模型ADE1.838725m、FDE3.984549m，CV为1.943822/4.247186m，分别降低5.4067%/6.1838%。
+RH−CV ADE差−0.105097m，配对log bootstrap95%区间[−0.128439,−0.074846]m，上界<0，支持该holdout上的主指标改善。
+但RH jitter1.166483高于CV1.107427（+5.3328%）；original/map ADE也差于CV，不能称为全面精度/稳定性提升。
+全部条件/log/次要模型完整保留；模型、候选、源码、逐项指标与bootstrap独立全量重放通过。582项pytest、Ruff和公开扫描通过。
+见[完整报告](CAUSAL_CONTEXT_INDEPENDENT_HOLDOUT_RESULTS.md)。此holdout已使用，不得继续在其上调参后当未见测试；单seed、6log、标注位置回放及已知数据重划分限制仍在。
+本轮不推送、不改简历，历史公开成绩不被静默替换；P7未启动。

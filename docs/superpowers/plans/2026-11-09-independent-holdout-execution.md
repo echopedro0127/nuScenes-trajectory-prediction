@@ -9,9 +9,11 @@
 新holdout候选入口直接复用冻结generate_candidates/audit_candidates与gate数组schema，但绑定专用holdout合同。预测阶段只保存GRU预测/身份，不提前输出静态误差。
 新执行源码在首次推理前封存；中断恢复必须匹配同一协议/源码/模型，保留已有完成阶段，不覆盖其数据。只有最终完整结果写入评分报告。
 
-- [ ] 先写统计与执行状态测试，确认RED；覆盖池化log bootstrap、确定性、无效输入、started身份/覆盖拒绝。
-- [ ] 实现统计、holdout scope/源码绑定、预测/上下文/候选准备与固定模型推理、完整指标与完成验证。
-- [ ] 全量pytest、Ruff、公开扫描后冻结新源码；核验原协议仍有效。
-- [ ] 执行真实holdout，独立验证输入/模型/输出、bootstrap及主结论，完整报告条件/log/局限。
+- [x] 先写统计与执行状态测试，确认RED；覆盖池化log bootstrap、确定性、无效输入、started身份/覆盖拒绝。
+- [x] 实现统计、holdout scope/源码绑定、预测/上下文/候选准备与固定模型推理、完整指标与完成验证。
+- [x] 全量pytest、Ruff、公开扫描后冻结新源码；核验原协议仍有效。
+- [x] 执行真实holdout，独立验证输入/模型/输出、bootstrap及主结论，完整报告条件/log/局限。
+
+实现7ccffc4，582项测试通过。主检验RH−CV ADE −0.105097m，log bootstrap95%区间[−0.128439,−0.074846]m；RH jitter高于CV5.33%，完整报告权衡。独立全量重放通过，见[阶段报告](../../CAUSAL_CONTEXT_INDEPENDENT_HOLDOUT_RESULTS.md)。
 
 输出根outputs/context/p66-independent/holdout-evaluation，数据产物分别在predictions/context/candidates的independent_holdout下。不得根据holdout误差改模型或统计，不推送、不改简历。

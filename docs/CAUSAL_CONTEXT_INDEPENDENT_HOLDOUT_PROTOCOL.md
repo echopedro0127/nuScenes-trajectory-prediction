@@ -58,6 +58,8 @@ python scripts/freeze_independent_holdout.py --verify-only
 
 ## 下一阶段
 
+后续实际评价现已完成，见[完整holdout结果](CAUSAL_CONTEXT_INDEPENDENT_HOLDOUT_RESULTS.md)。本报告上文描述的是冻结时状态，锁文件不作回写或变更。
+
 实现只读holdout输入准备和评价入口，并在第一次推理前将新执行源码清单绑定本协议identity。
 既有独立候选loader故意拒绝holdout，不能通过重命名为select或放宽旧检查绕过；需要单独验证与fit/select的scene/log互斥及固定新上游。
 执行时先发布started记录，最终发布完整模型/条件/指标、log统计和completion。任何结论都在完成这一步后才产生。
