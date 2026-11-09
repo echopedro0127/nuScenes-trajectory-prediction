@@ -49,3 +49,16 @@ def test_freeze_refuses_holdout_artifacts_before_reading_models(tmp_path):
     with pytest.raises(ValueError, match="holdout artifacts"):
         freeze(tmp_path, tmp_path / "protocol")
     assert not (tmp_path / "protocol").exists()
+
+
+def test_all_selected_models_are_rechecked_even_without_extra_references(tmp_path):
+    from trajectory_prediction.evaluation.independent_protocol import publish_lock, verify_lock
+    from trajectory_prediction.utils.provenance import sha256_file
+    model = tmp_path / "gru.pt"
+    model.write_bytes(b"selected model")
+    policy = {"models": {"gru": {"path": "gru.pt", "sha256": sha256_file(model)}}}
+    output = tmp_path / "protocol"
+    publish_lock(tmp_path, [], {}, policy, output)
+    model.write_bytes(b"different weights")
+    with pytest.raises(ValueError, match="checksum"):
+        verify_lock(tmp_path, output)

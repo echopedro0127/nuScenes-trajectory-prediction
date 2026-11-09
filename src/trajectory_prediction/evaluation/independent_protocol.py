@@ -42,6 +42,12 @@ def publish_lock(root, references, source_files, policy, output):
         if key in artifacts:
             raise ValueError("duplicate protocol artifact")
         artifacts[key] = sha256_file(path)
+    for reference in policy.get("models", {}).values():
+        path = _reference(root, reference["path"])
+        digest = sha256_file(path)
+        if digest != reference["sha256"]:
+            raise ValueError("selected model checksum mismatch")
+        artifacts[path.relative_to(root).as_posix()] = digest
     source = {name: {"relative_path": Path(os.path.relpath(Path(path).resolve(), root)).as_posix(),
                      "sha256": sha256_file(Path(path))} for name, path in source_files.items()}
     body = {"schema": "independent_holdout_protocol_v1", "policy": policy,
@@ -67,6 +73,10 @@ def verify_lock(root, output):
     for name, digest in document["body"]["artifacts"].items():
         if sha256_file(_reference(root, name)) != digest:
             raise ValueError("protocol parent artifact checksum mismatch")
+    for reference in document["body"]["policy"].get("models", {}).values():
+        path = _reference(root, reference["path"])
+        if document["body"]["artifacts"].get(path.relative_to(root).as_posix()) != reference["sha256"]:
+            raise ValueError("selected model checksum binding mismatch")
     for reference in document["body"]["sources"].values():
         if sha256_file((root / reference["relative_path"]).resolve()) != reference["sha256"]:
             raise ValueError("protocol executable source checksum mismatch")
