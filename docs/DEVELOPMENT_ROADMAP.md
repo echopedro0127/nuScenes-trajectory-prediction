@@ -1,6 +1,13 @@
 # 因果在线轨迹预测：分阶段开发路线图
 
-更新日期：2026-11-07。当前状态：P6.6C/1完成log互斥新划分、旧上游暴露审计和seed2027 GRU从头重训；holdout未进行预测评估，下游map/gate/RH链尚未重建。旧协议推荐RH/consistent_010不变；P7未启动。
+更新日期：2026-11-10。V1独立链重训及一次holdout评估已完成，见[结果](CAUSAL_CONTEXT_INDEPENDENT_HOLDOUT_RESULTS.md)；该holdout已使用，禁止继续调参后当作未见测试。V2已在独立分支完成共享带噪观测与四物理策略开发pilot，见[首轮结果](NOISE_AWARE_PHASE1_RESULTS.md)及[阶段设计](superpowers/specs/2026-11-10-noise-aware-phase1-design.md)。下文保留各阶段历史记录。
+
+## V2当前入口
+
+- 分支：`feature/noise-aware-online`；worktree：`.worktrees/noise-aware-online`。
+- 已完成：608条开发轨迹、9条件、3噪声seed、4算法，65,664条明细；没有新增holdout评价或神经网络训练。
+- 下一阶段：公平重建带噪历史的GRU/地图候选，研究协方差、观测年龄及残差序列的可靠性门控。重点验证干净条件损失和真实机动误抑制；保留α-β及普通KF强对照。
+- 当前观测为metadata位置及合成退化；真实图像/点云特征接入在后续阶段按资源和数据覆盖决定。
 
 ## 开发入口
 
