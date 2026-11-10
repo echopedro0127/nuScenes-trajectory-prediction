@@ -1,15 +1,16 @@
 # 因果在线轨迹预测：分阶段开发路线图
 
-更新日期：2026-11-10。V1独立链重训及一次holdout评估已完成，见[结果](CAUSAL_CONTEXT_INDEPENDENT_HOLDOUT_RESULTS.md)；该holdout已使用，禁止继续调参后当作未见测试。V2已完成[Phase 1物理基线](NOISE_AWARE_PHASE1_RESULTS.md)、[Phase 2A门控](NOISE_AWARE_PHASE2A_RESULTS.md)、[Phase 2B归因](NOISE_AWARE_PHASE2B_RESULTS.md)、[Phase 2C受约束运动候选](NOISE_AWARE_PHASE2C_RESULTS.md)开发pilot。下文保留各阶段历史记录。
+更新日期：2026-11-10。V1独立链重训及一次holdout评估已完成，见[结果](CAUSAL_CONTEXT_INDEPENDENT_HOLDOUT_RESULTS.md)；该holdout已使用，禁止继续调参后当作未见测试。V2完成[Phase 1基线](NOISE_AWARE_PHASE1_RESULTS.md)、[2A门控](NOISE_AWARE_PHASE2A_RESULTS.md)、[2B归因](NOISE_AWARE_PHASE2B_RESULTS.md)、[2C运动候选](NOISE_AWARE_PHASE2C_RESULTS.md)、[2D多seed/因果保护](NOISE_AWARE_PHASE2D_RESULTS.md)开发pilot。下文保留历史记录。
 
 ## V2当前入口
 
-- 当前分支：`feature/noise-aware-motion`；worktree：`.worktrees/noise-aware-motion`。Phase 1/2A保留在`noise-aware-online`，Phase 2B保留在`noise-aware-diagnostics`对应分支/worktree，可分别独立复核。
+- 当前分支：`feature/noise-aware-stability`；worktree：`.worktrees/noise-aware-stability`。Phase 1/2A、2B、2C分别保留在`noise-aware-online`、`noise-aware-diagnostics`、`noise-aware-motion`对应分支/worktree，可分别独立复核。
 - Phase 1完成：608条开发轨迹、9条件、3噪声seed、4算法，65,664条明细；本阶段没有新增holdout评价或神经网络训练。
 - Phase 2A完成：在clean/0.5m噪声/离群三条件重建七候选，训练常数/运动/协方差/残差信息四门控；618项测试通过。离群条件相对NIS-KF ADE约降2.57%，但纯高斯噪声仍比KF差约1.38%。见[结果与限制](NOISE_AWARE_PHASE2A_RESULTS.md)。上游GRU/map权重冻结，仅重建输入；没有新增holdout评价。
 - Phase 2B完成：五组时间/专家控制、离线机动及NIS事件诊断，625项测试及全指标重算通过，full精确复现父结果。固定Q/R协方差只是时间编码；full的clean减速/低速ADE分别比CV高9.34%/14.02%，地图候选只有小幅且不一致的收益。见[报告](NOISE_AWARE_PHASE2B_RESULTS.md)。
 - Phase 2C完成：CA/刹停/保持三候选、四组控制，630项测试及131,328条指标重算通过。全部候选相对旧门控clean减速/低速ADE降低6.70%/3.74%，高曲率却增加6.09%；CA贡献主要收益，停止候选无总体增益。见[报告](NOISE_AWARE_PHASE2C_RESULTS.md)。
-- 下一阶段：优先验证多训练seed稳定性及高曲率保护，再决定CA/停止候选取舍。新未参与开发数据验证仍缺失，延迟/丢包门控未实现，不据三条件外推。
+- Phase 2D完成：3门控控制×3训练seed，636测试及全指标/跨seed重算通过。CA在clean/普通噪声3/3训练seed改善、离群2/3；保护使高曲率相对CA平均改善2.65%，但仍比原门控差3.64%，噪声条件总体ADE反而退化。见[报告](NOISE_AWARE_PHASE2D_RESULTS.md)。
+- 下一阶段：解释高曲率残余误差，并在未参与开发的数据或扩大现有fit/select窗口上验证。扩大窗口仍属开发验证，不等于新log或盲测；延迟/丢包门控未实现，不据三条件外推。
 - 当前观测为metadata位置及合成退化；真实图像/点云特征接入在后续阶段按资源和数据覆盖决定。
 
 ## 开发入口

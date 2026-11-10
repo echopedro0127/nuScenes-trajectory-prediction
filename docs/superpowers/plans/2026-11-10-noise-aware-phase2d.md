@@ -6,8 +6,8 @@
 
 按[设计](../specs/2026-11-10-noise-aware-phase2d-design.md)执行。
 
-- [ ] 1. guard和seed回归测试先RED：直行/静止、转弯/前缀、同seed重现/异seed不同、CA严格屏蔽。
-- [ ] 2. motion_guard.py实现固定规则；motion_learning.py增加默认兼容seed和guard mask，保持旧四控制列表，旧2027路径不变；测试GREEN。
-- [ ] 3. 多seed汇总与小型发布/篡改先RED；实现phase2d_experiment.py与CLI，父实验原worktree校验、保护缓存、9模型与完整评价保存。
-- [ ] 4. 全量pytest/Ruff/公开扫描通过，提交冻结后运行outputs/noise-aware/phase2d。
-- [ ] 5. 全指标/分组/跨seed/权重重算、2027双控制精确复现、64流保护抽查通过；核对报告/路线图，本地提交。
+- [x] 1. guard缺模块和seed缺参数先RED；直行/静止/转弯/前缀、同seed重现/异seed变化、严格屏蔽及全允许与未保护训练一致通过。
+- [x] 2. motion_guard.py及motion_learning.py默认兼容seed/guard实现，旧四控制列表不变，旧2027路径GREEN。
+- [x] 3. 跨seed统计与小型发布/篡改RED→GREEN；phase2d_experiment.py/CLI完成父链、保护缓存、9模型和完整评价。
+- [x] 4. 636项pytest/Ruff/公开扫描通过，冻结7bc11d9；outputs/noise-aware/phase2d完成180,576条策略记录。
+- [x] 5. 全指标/分组/跨seed/权重/覆盖率重算、2027双控制各5,472流精确复现、64流保护重建通过；[报告](../../NOISE_AWARE_PHASE2D_RESULTS.md)保留保护在噪声条件下退化，只本地提交。
