@@ -1,13 +1,14 @@
 # 因果在线轨迹预测：分阶段开发路线图
 
-更新日期：2026-11-10。V1独立链重训及一次holdout评估已完成，见[结果](CAUSAL_CONTEXT_INDEPENDENT_HOLDOUT_RESULTS.md)；该holdout已使用，禁止继续调参后当作未见测试。V2已完成[Phase 1物理基线](NOISE_AWARE_PHASE1_RESULTS.md)与[Phase 2A带噪候选及可靠性门控](NOISE_AWARE_PHASE2A_RESULTS.md)开发pilot。下文保留各阶段历史记录。
+更新日期：2026-11-10。V1独立链重训及一次holdout评估已完成，见[结果](CAUSAL_CONTEXT_INDEPENDENT_HOLDOUT_RESULTS.md)；该holdout已使用，禁止继续调参后当作未见测试。V2已完成[Phase 1物理基线](NOISE_AWARE_PHASE1_RESULTS.md)、[Phase 2A带噪候选及门控](NOISE_AWARE_PHASE2A_RESULTS.md)、[Phase 2B归因诊断](NOISE_AWARE_PHASE2B_RESULTS.md)开发pilot。下文保留各阶段历史记录。
 
 ## V2当前入口
 
-- 分支：`feature/noise-aware-online`；worktree：`.worktrees/noise-aware-online`。
+- 当前分支：`feature/noise-aware-diagnostics`；worktree：`.worktrees/noise-aware-diagnostics`。Phase 1/2A保留在原`feature/noise-aware-online`和对应worktree，可独立复核。
 - Phase 1完成：608条开发轨迹、9条件、3噪声seed、4算法，65,664条明细；本阶段没有新增holdout评价或神经网络训练。
 - Phase 2A完成：在clean/0.5m噪声/离群三条件重建七候选，训练常数/运动/协方差/残差信息四门控；618项测试通过。离群条件相对NIS-KF ADE约降2.57%，但纯高斯噪声仍比KF差约1.38%。见[结果与限制](NOISE_AWARE_PHASE2A_RESULTS.md)。上游GRU/map权重冻结，仅重建输入；没有新增holdout评价。
-- 下一阶段：真实机动/异常观测分组、显式时间步及专家移除对照，再研究持续性残差与CA/转弯候选。多训练seed与新未参与开发数据的验证仍缺失；延迟/丢包门控未实现，不据现有三条件外推。
+- Phase 2B完成：五组时间/专家控制、离线机动及NIS事件诊断，625项测试及全指标重算通过，full精确复现父结果。固定Q/R协方差只是时间编码；full的clean减速/低速ADE分别比CV高9.34%/14.02%，地图候选只有小幅且不一致的收益。见[报告](NOISE_AWARE_PHASE2B_RESULTS.md)。
+- 下一阶段：优先验证减速/低速的受约束加速度或停止候选，及持续性残差。多训练seed与新未参与开发数据验证仍缺失；延迟/丢包门控未实现，不据现有三条件外推。
 - 当前观测为metadata位置及合成退化；真实图像/点云特征接入在后续阶段按资源和数据覆盖决定。
 
 ## 开发入口
