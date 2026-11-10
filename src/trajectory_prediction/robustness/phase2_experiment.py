@@ -164,7 +164,7 @@ def main(argv=None):
     parser.add_argument('--phase1', type=Path, default=Path('outputs/noise-aware/phase1'))
     parser.add_argument('--dataroot', type=Path, default=Path('../../data/nuscenes'))
     parser.add_argument('--model-config', type=Path, default=Path('configs/models/gru.yaml'))
-    parser.add_argument('--output-root', type=Path, default=Path('outputs/noise-aware/phase2a'))
+    parser.add_argument('--output-root', type=Path, default=Path('outputs/noise-aware/phase2a-v1'))
     parser.add_argument('--verify-only', action='store_true')
     args = parser.parse_args(argv)
     torch.set_num_threads(2)

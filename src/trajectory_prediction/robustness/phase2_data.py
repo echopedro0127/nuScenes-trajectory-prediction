@@ -25,6 +25,7 @@ def reference(path):
 
 def load_models(root, model_config):
     root = Path(root)
+    model_config = Path(model_config)
     payload = torch.load(root/'map-training/seed-2027/best.pt', map_location='cpu', weights_only=True)
     pair, _ = load_pair(root/'map-training/seed-2027/best.pt', payload['input_metadata'])
     checkpoint = root/'gru-seed-2027/best.pt'
