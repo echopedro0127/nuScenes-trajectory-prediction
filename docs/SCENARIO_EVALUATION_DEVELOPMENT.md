@@ -2,7 +2,7 @@
 
 日期：2026-11-10；审查修订：2026-11-11。文档分支：`feature/scenario-evaluation`，worktree：`.worktrees/scenario-evaluation`。
 
-**状态：开发计划，尚未实现新指标或运行本阶段实验。** 用户当前要求先写开发文档；后续按阶段执行，不把本文件中的预期行为写成已取得的成果。
+**状态：S0协议、S1数据装配、S2冻结重放已实现并通过真实预检；新指标及正式3A实验尚未实施。** 阶段证据见[S0–S2报告](SCENARIO_EVALUATION_S0_S2_RESULTS.md)。后续按阶段执行，不把预检通过写成新模型性能提升。
 
 本次依据[审查报告](SCENARIO_EVALUATION_REVIEW.md)R1–R9修订协议；修订只代表文档采纳，代码验收仍待执行。以下条款与执行计划共同构成拟冻结的`scenario_evaluation_v1`，首次正式成绩计算前绑定配置、源码与输入哈希。
 
@@ -205,6 +205,8 @@ noise_outlier与noise_05按角色、窗口键、噪声seed及同一冻结模型�
 运行时父链原环境验证只做一次并绑定证明；明确owner project roots。沿用float32、model.eval、CPU两线程与原4096平坦批次路径，先复现旧数值再优化；同环境要求逐项精确一致，变更后端必须运行前冻结新容差协议，不在失败后放宽。按role/strategy分片，不堆叠所有模型到GPU；每角色缓存读取一次，避免内循环重复解压。
 
 实现顺序：S0协议→S1来源/GT历史装配→S2真实单窗口重放及旧指标→S3固定lead→S4a增益/尾部、S4b方向、S4c恢复、S4d标签→S5分片重放/原始P发布→S6汇总报告→S7冻结后正式全量运行。S4a依赖S3，S4b/c依赖S1+S3，S4d依赖S0+S1；标签不阻塞纯指标数值测试。S5/S6先小夹具验收，不在S7前计算正式全量成绩。
+
+S0–S2现有入口为`scripts/run_scenario_preflight.py`，产物标记`preflight_completed.json`，不冒充完整3A的completed。直接父owner显式传入；上游parent_path链通过Git查询实际worktree owner并将身份→root映射固化进run，不按输出目录深度猜测。现有冻结父验证器仍沿用原工作区布局；迁移父链前需先通过原入口预检。
 
 验收以时间索引正确、因果性、数值与摘要可重算为准，**不要求新模型获胜**。既有ADE/FDE/jitter必须复现；新指标独立从预测/GT重算。恢复必须正确处理延后受损、恢复后再次超阈值、未受损、窗尾不足及配对不完整。
 

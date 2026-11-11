@@ -1,0 +1,55 @@
+schema: scenario_evaluation_v1
+dt: 0.5
+query_steps: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+lead_steps: [1, 2, 4]
+primary_lead_steps: 2
+revision_tolerance_m: 0.05
+miss_distance_m: 2.0
+heading_min_speed_mps: 0.5
+quantiles: [0.5, 0.95, 0.99]
+quantile_method: linear
+tail_unit: query_error
+mean_reduction: query_then_noise_then_window
+time_basis: window_relative
+event_scope: window
+missing_expected_pair: error
+nonfinite_prediction: error
+json_nonfinite: reject
+noise_seeds: [2027, 2028, 2029]
+inference:
+  dtype: float32
+  device: cpu
+  threads: 2
+  flat_batch_size: 4096
+  compatibility: exact
+recovery:
+  condition: noise_outlier
+  paired_reference: noise_05
+  source_step: 4
+  last_query_step: 7
+  excess_threshold_m: 0.5
+  consecutive_updates: 2
+  require_no_relapse: true
+roles: [independent_fit, independent_select]
+conditions: [clean, noise_05, noise_outlier]
+model_seeds: [2027, 2028, 2029]
+gate_variants: [baseline7, plus_ca, guarded_ca]
+physical_candidates:
+  [raw_cv, alpha_beta, kf_cv, kf_nis, bounded_ca, brake_stop, hold_position]
+event_labels:
+  speed_median_window: 3
+  braking_acceleration_mps2: -2.0
+  braking_duration_steps: 2
+  braking_prior_speed_mps: 2.0
+  stop_speed_mps: 0.3
+  stop_duration_steps: 2
+  stop_prior_speed_mps: 1.0
+  prior_window_steps: 4
+  restart_speed_mps: 1.0
+  restart_duration_steps: 2
+  turn_min_speed_mps: 0.5
+  s_turn_absolute_yaw_deg: 45.0
+  s_turn_max_net_yaw_deg: 15.0
+  s_turn_each_direction_deg: 20.0
+  u_turn_net_yaw_deg: 135.0
+  manual_review_cap_per_log_tag: 20

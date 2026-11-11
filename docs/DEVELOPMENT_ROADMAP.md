@@ -4,7 +4,7 @@
 
 ## V2当前入口
 
-2026-11-11文档修订：已依据[审查报告R1–R9](SCENARIO_EVALUATION_REVIEW.md)同步修订3A设计与计划，尚未实现/运行。实现顺序固定为S0协议→S1数据/GT来源→S2真实冻结重放→S3固定lead→S4指标/窗口标签→S5分片原始预测→S6统计审计→S7冻结后全量运行。完整episode归并与停车指标留3B。
+2026-11-11进度：已依据[审查报告R1–R9](SCENARIO_EVALUATION_REVIEW.md)修订设计，并实现S0协议→S1数据/GT来源→S2真实冻结重放，见[阶段报告](SCENARIO_EVALUATION_S0_S2_RESULTS.md)。下一步S3固定lead→S4指标/窗口标签→S5分片原始预测→S6统计审计→S7冻结后全量运行。完整episode归并与停车指标留3B。
 
 - 当前文档分支：`feature/scenario-evaluation`；worktree：`.worktrees/scenario-evaluation`。最新已完成实验Phase 2D保留在`feature/noise-aware-stability`；Phase 1/2A、2B、2C分别保留在原对应分支/worktree，可独立复核。
 - Phase 1完成：608条开发轨迹、9条件、3噪声seed、4算法，65,664条明细；本阶段没有新增holdout评价或神经网络训练。
@@ -12,7 +12,7 @@
 - Phase 2B完成：五组时间/专家控制、离线机动及NIS事件诊断，625项测试及全指标重算通过，full精确复现父结果。固定Q/R协方差只是时间编码；full的clean减速/低速ADE分别比CV高9.34%/14.02%，地图候选只有小幅且不一致的收益。见[报告](NOISE_AWARE_PHASE2B_RESULTS.md)。
 - Phase 2C完成：CA/刹停/保持三候选、四组控制，630项测试及131,328条指标重算通过。全部候选相对旧门控clean减速/低速ADE降低6.70%/3.74%，高曲率却增加6.09%；CA贡献主要收益，停止候选无总体增益。见[报告](NOISE_AWARE_PHASE2C_RESULTS.md)。
 - Phase 2D完成：3门控控制×3训练seed，636测试及全指标/跨seed重算通过。CA在clean/普通噪声3/3训练seed改善、离群2/3；保护使高曲率相对CA平均改善2.65%，但仍比原门控差3.64%，噪声条件总体ADE反而退化。见[报告](NOISE_AWARE_PHASE2D_RESULTS.md)。
-- Phase 3开发文档已完成，尚未实现/运行新评测：[场景评测设计](SCENARIO_EVALUATION_DEVELOPMENT.md)与[3A执行计划](superpowers/plans/2026-11-10-scenario-evaluation-phase3a.md)。先重放冻结模型，补固定提前量、同时间点修正增益、首离群恢复、方向/尾部指标及GT事件标签；暂不训练、下载新数据或接Cosmos。
+- Phase 3的S0–S2已实现并完成真实冻结重放预检；完整新指标评测尚未运行：[场景评测设计](SCENARIO_EVALUATION_DEVELOPMENT.md)与[3A执行计划](superpowers/plans/2026-11-10-scenario-evaluation-phase3a.md)。下一步补固定提前量、同目标修正增益、额外位置误差恢复、方向/尾部指标及GT窗口标签；暂不训练、下载新数据或接Cosmos。
 - 后续3B扩展急刹、走停、S弯及物理基线遮挡恢复；学习门控缺失/延迟接口与交互输入另列3C。扩大现有fit/select窗口仍属开发验证，不等于新log或盲测。
 - 当前观测为metadata位置及合成退化；真实图像/点云特征接入在后续阶段按资源和数据覆盖决定。
 

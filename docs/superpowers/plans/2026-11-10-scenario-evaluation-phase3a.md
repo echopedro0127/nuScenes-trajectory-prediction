@@ -8,11 +8,11 @@
 
 **Tech Stack:** 既有Python/NumPy/PyTorch/pandas/pytest/Matplotlib环境，不新增大型依赖。
 
-**Status:** 仅计划，下面列出的新源码、配置、测试和CLI尚未创建；本次只写文档。
+**Status:** S0–S2已实现并通过真实数据预检，见[阶段报告](../../SCENARIO_EVALUATION_S0_S2_RESULTS.md)；S3及以后仍是计划，新指标/标签/完整评测CLI尚未创建。
 
-**审查修订：2026-11-11。** 已按[R1–R9](../../SCENARIO_EVALUATION_REVIEW.md)修订；本计划所有实现复选框仍未完成。3A限定窗口标签与相对时钟，canonical episode及停车误差指标属于3B。
+**审查修订：2026-11-11。** 已按[R1–R9](../../SCENARIO_EVALUATION_REVIEW.md)修订；当前完成范围以S0–S2及阶段报告为准。3A限定窗口标签与相对时钟，canonical episode及停车误差指标属于3B。
 
-完整协议见[开发设计](../../SCENARIO_EVALUATION_DEVELOPMENT.md)。后续在当前`feature/scenario-evaluation`独立worktree执行；父`noise-aware-stability`只读。以下所有新CLI命令均是拟实现接口，当前不能当作已可运行命令。
+完整协议见[开发设计](../../SCENARIO_EVALUATION_DEVELOPMENT.md)。在当前`feature/scenario-evaluation`独立worktree执行；父`noise-aware-stability`只读。S7的完整评测CLI仍是拟实现接口；已可用的S0–S2入口为`scripts/run_scenario_preflight.py`。
 
 ## 文件职责
 
@@ -24,8 +24,10 @@
 | `src/trajectory_prediction/analysis/scenario_events.py` | GT窗口事件标签、相对onset/end及人工抽查清单；不做episode归并 |
 | `src/trajectory_prediction/evaluation/scenario_inputs.py` | 父资源预检、GT历史/未来和窗口身份/时钟装配 |
 | `src/trajectory_prediction/evaluation/scenario_replay.py` | 原环境父验证、冻结模型预测重建、来源绑定；不训练 |
+| `src/trajectory_prediction/evaluation/scenario_preflight.py` | S0–S2装配/重放/来源证明、就绪产物及独立重算 |
 | `src/trajectory_prediction/evaluation/scenario_report.py` | 分组/逐log/逐训练seed统计、独立verify、确定性案例图 |
 | `scripts/run_scenario_evaluation.py` | 统一入口与verify-only |
+| `scripts/run_scenario_preflight.py` | 已实现的S0–S2专用入口，不运行新指标 |
 | `tests/evaluation/test_streaming_metrics.py` | 时间索引/增益/无效方向及尾部边界 |
 | `tests/evaluation/test_event_metrics.py` | 未受损、延后受损、恢复/反复超阈值/缺失配对 |
 | `tests/analysis/test_scenario_events.py` | 事件标签、S弯抵消、停车断段及持续时间边界 |
@@ -55,7 +57,7 @@ S4a–d可独立推进，标签不阻塞M1/M2数值测试；执行仍使用当�
 
 ## S0：冻结配置和时间契约
 
-- [ ] 将以下初始配置写入新YAML，并记录schema `scenario_evaluation_v1`：
+- [x] 将以下初始配置写入新YAML，并记录schema `scenario_evaluation_v1`：
 
 ```yaml
 schema: scenario_evaluation_v1
@@ -114,29 +116,29 @@ event_labels:
   manual_review_cap_per_log_tag: 20
 ```
 
-- [ ] 在`test_scenario_replay.py`先写无效lead/dt、缺失schema、未知角色/条件、重复模型seed拒绝测试，确认RED；在`scenario_replay.py`实现`validate_protocol(config)`后GREEN。只允许fit/select，holdout角色直接拒绝；纯指标模块不执行文件IO。
-- [ ] 输出协议中保存整数查询/目标列，不用浮点相等寻找时间点。人工核算h=0.5/1/2s分别11/10/8个有效查询，h=1s增益9对。
-- [ ] 提交配置和校验；后续若改定义必须升schema或metric版本，不覆盖旧协议。
+- [x] 在`test_scenario_replay.py`先写无效lead/dt、缺失schema、未知角色/条件、重复模型seed拒绝测试，确认RED；在`scenario_replay.py`实现`validate_protocol(config)`后GREEN。只允许fit/select，holdout角色直接拒绝；纯指标模块不执行文件IO。
+- [x] 输出协议中保存整数查询/目标列，不用浮点相等寻找时间点。核算h=0.5/1/2s分别11/10/8个有效查询，h=1s增益9对。
+- [x] 配置和校验纳入本次本地实现提交；后续若改定义必须升schema或metric版本，不覆盖旧协议。
 
 ## S1：输入装配与父资源预检
 
 **Files:** 新建`scenario_inputs.py`及`test_scenario_inputs.py`，扩展`test_scenario_replay.py`。
 
-- [ ] 先RED：对小型父manifest/records/NPZ及原GT缓存夹具，测试按role/instance/sample匹配；相同行号换instance、重复键、GT未来错配、role/log交集、缺文件/统计/checkpoint、非规则时间和非有限预测全部抛ValueError或FileNotFoundError。纯测试不需要nuScenes数据或真实checkpoint。
-- [ ] GREEN：实现`assemble_inputs(parent, parent_project_root)`，返回`datasets/records/gt_windows/references`；gt_windows含window_key、history_xy/history_mask/future_xy、坐标/单位、query_times及来源引用。GT数组从父run的source_cache_root经原load_cache加载，不能从门控速度反推。
-- [ ] 显式owner roots映射供父链验证使用：每个父身份对应其project root及Python入口，路径迁移需重新核对哈希；不按parent.parents固定层数猜源码。当前Phase 2D原入口内部目录约束需在预检中确认，不修改其绑定源码绕过失败。
-- [ ] 原worktree执行父`run_noise_aware_stability.py --verify-only`一次并保存证明；绑定completed/run、records、角色NPZ、9checkpoint/统计、GT缓存manifest和数据哈希。缺资源列出路径及设计§4.3再生入口，不自动训练或下载。
-- [ ] 检查模型输入与评价GT无共享字段接口：回放仅features/candidates/ca_allowed；GT历史/未来/标签由独立评价层消费。3A只输出相对时钟；绝对timestamp/episode不作前置条件。
-- [ ] 真实窗口装配核对键、历史、12点未来、11个查询和候选来源后提交；父完整模型历史/未来意外缺失直接失败。
+- [x] 先RED：对小型父manifest/records/NPZ及原GT缓存夹具，测试按role/instance/sample匹配；相同行号换instance、重复键、GT未来错配、role/log交集、缺文件/统计/checkpoint、非规则时间和非有限输入均拒绝。纯测试不需要nuScenes数据或真实checkpoint。
+- [x] GREEN：实现`assemble_inputs(parent, parent_project_root)`，以`ScenarioInputs`返回datasets/records/gt_windows/references等字段；GT含window_key、历史mask、未来、坐标/单位、相对时间及来源，不从门控速度反推。
+- [x] 固化owner roots映射：直接父root显式传入，上游parent_path链经Git解析真实worktree root；不按目录深度猜测。当前冻结原入口布局已通过预检，未修改父源码。
+- [x] 原worktree执行父`run_noise_aware_stability.py --verify-only`一次并保存证明；绑定completed/run、records、角色NPZ、9checkpoint/统计、GT缓存manifest和数据哈希。缺资源列出路径及再生入口，不自动训练或下载。
+- [x] 检查模型输入与评价GT分离：回放仅features/candidates/ca_allowed；GT历史/未来/标签由独立评价层消费。3A只输出相对时钟；绝对timestamp/episode不作前置条件。
+- [x] 真实窗口装配核对键、历史、12点未来、11个查询和候选来源；父完整模型历史/未来意外缺失直接失败，纳入本次本地提交。
 
 ## S2：提前验收真实冻结重放及旧指标
 
 **Files:** 新建`scenario_replay.py`核心适配及`test_scenario_replay.py`相关测试。
 
-- [ ] RED：小型checkpoint重放、checkpoint被改拒绝、未来观测改变不影响输出前缀、无optimizer/backward；测试调用原forecast_metrics，不能重写旧指标。
-- [ ] GREEN：冻结9门控使用父predict_motion、归一化统计、float32/model.eval/CPU两线程及原4096平坦批次路径。选定真实窗口仍从其原批次上下文抽取，不改成独立batch=1后要求逐位相等。7物理策略直接读取已核验父候选。
-- [ ] 先对固定真实窗口及其所属批次核对原ADE/FDE/jitter与父逐项精确相等，保留证据；完整9门控/7物理全数据兼容留S7。失败先查dtype/批次/后端，不事后放宽容差。
-- [ ] 记录输入字段、模型身份、父验证证明及输出shape；此检查点通过后再推进新指标集成，提交。
+- [x] RED→GREEN：小型checkpoint重放、checkpoint被改拒绝、未来观测改变不影响输出前缀、无optimizer/backward；调用原forecast_metrics，未重写旧指标。
+- [x] 冻结9门控使用父predict_motion、归一化统计、float32/model.eval/CPU两线程及原4096平坦批次路径。从完整role前向提取选定窗口批次邻域，未改成独立batch=1。7物理策略读取已核验父候选。
+- [x] 两角色各373条批次邻域流：9门控逐更新ADE/FDE/jitter、7物理策略窗口均值与父结果精确相等。物理策略父引用不都含逐更新数组，明确只主张窗口均值兼容；完整新评测兼容仍留S7。
+- [x] 记录字段/身份/父证明/shape，保存所选P并独立磁盘重载重放；纳入本次本地实现提交。下一步为S3。
 
 ## S3：固定lead；S4a增益/尾部；S4b方向
 
