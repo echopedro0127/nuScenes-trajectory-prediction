@@ -4,6 +4,8 @@
 
 ## V2当前入口
 
+2026-11-12：S3固定0.5/1/2s提前量纯指标已实现，32个S2预测分片的346,144个误差通过独立标量参考验证，见[S3报告](SCENARIO_EVALUATION_S3_RESULTS.md)。当前下一步为S4a同目标修正增益/尾部；S4b/c/d随后接入，尚无正式全量新成绩。
+
 2026-11-11进度：已依据[审查报告R1–R9](SCENARIO_EVALUATION_REVIEW.md)修订设计，并实现S0协议→S1数据/GT来源→S2真实冻结重放，见[阶段报告](SCENARIO_EVALUATION_S0_S2_RESULTS.md)。下一步S3固定lead→S4指标/窗口标签→S5分片原始预测→S6统计审计→S7冻结后全量运行。完整episode归并与停车指标留3B。
 
 - 当前文档分支：`feature/scenario-evaluation`；worktree：`.worktrees/scenario-evaluation`。最新已完成实验Phase 2D保留在`feature/noise-aware-stability`；Phase 1/2A、2B、2C分别保留在原对应分支/worktree，可独立复核。

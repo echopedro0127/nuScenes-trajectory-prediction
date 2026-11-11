@@ -2,7 +2,7 @@
 
 日期：2026-11-10；审查修订：2026-11-11。文档分支：`feature/scenario-evaluation`，worktree：`.worktrees/scenario-evaluation`。
 
-**状态：S0协议、S1数据装配、S2冻结重放已实现并通过真实预检；新指标及正式3A实验尚未实施。** 阶段证据见[S0–S2报告](SCENARIO_EVALUATION_S0_S2_RESULTS.md)。后续按阶段执行，不把预检通过写成新模型性能提升。
+**状态：S0–S2预检与S3固定lead已完成；S4其余指标及正式3A全量评分尚未实施。** 证据见[S0–S2报告](SCENARIO_EVALUATION_S0_S2_RESULTS.md)及[S3报告](SCENARIO_EVALUATION_S3_RESULTS.md)。S3仅真实子集计算/标量核验，不把预检或实现通过写成模型性能提升。
 
 本次依据[审查报告](SCENARIO_EVALUATION_REVIEW.md)R1–R9修订协议；修订只代表文档采纳，代码验收仍待执行。以下条款与执行计划共同构成拟冻结的`scenario_evaluation_v1`，首次正式成绩计算前绑定配置、源码与输入哈希。
 

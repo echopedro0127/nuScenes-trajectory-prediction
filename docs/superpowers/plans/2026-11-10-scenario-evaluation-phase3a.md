@@ -8,9 +8,9 @@
 
 **Tech Stack:** 既有Python/NumPy/PyTorch/pandas/pytest/Matplotlib环境，不新增大型依赖。
 
-**Status:** S0–S2已实现并通过真实数据预检，见[阶段报告](../../SCENARIO_EVALUATION_S0_S2_RESULTS.md)；S3及以后仍是计划，新指标/标签/完整评测CLI尚未创建。
+**Status:** S0–S2预检及[S3固定lead](../../SCENARIO_EVALUATION_S3_RESULTS.md)已实现并通过真实子集验证；S4及以后仍是计划，增益/方向/恢复/标签及完整评测CLI尚未创建。
 
-**审查修订：2026-11-11。** 已按[R1–R9](../../SCENARIO_EVALUATION_REVIEW.md)修订；当前完成范围以S0–S2及阶段报告为准。3A限定窗口标签与相对时钟，canonical episode及停车误差指标属于3B。
+**审查修订：2026-11-11；进度更新：2026-11-12。** 已按[R1–R9](../../SCENARIO_EVALUATION_REVIEW.md)修订；当前完成范围为S0–S3及对应阶段报告。3A限定窗口标签与相对时钟，canonical episode及停车误差指标属于3B。
 
 完整协议见[开发设计](../../SCENARIO_EVALUATION_DEVELOPMENT.md)。在当前`feature/scenario-evaluation`独立worktree执行；父`noise-aware-stability`只读。S7的完整评测CLI仍是拟实现接口；已可用的S0–S2入口为`scripts/run_scenario_preflight.py`。
 
@@ -140,7 +140,15 @@ event_labels:
 - [x] 两角色各373条批次邻域流：9门控逐更新ADE/FDE/jitter、7物理策略窗口均值与父结果精确相等。物理策略父引用不都含逐更新数组，明确只主张窗口均值兼容；完整新评测兼容仍留S7。
 - [x] 记录字段/身份/父证明/shape，保存所选P并独立磁盘重载重放；纳入本次本地实现提交。下一步为S3。
 
-## S3：固定lead；S4a增益/尾部；S4b方向
+## S3：固定lead已完成（2026-11-12）
+
+- [x] fixed_lead_errors纯函数：有限输入、零基行列、11/10/8个有效查询及独立mask/相对时钟。
+- [x] 先RED再GREEN，覆盖标量参考、随机float32/64、明确行列哨兵、尾部及非有限/数值范围边界。
+- [x] 新指标统一float64；独立math.hypot比对预设atol/rtol=1e-12，旧指标仍精确兼容。
+- [x] 已保存的32个真实S2预测分片、三个lead共346,144个误差逐项对比通过；这是子集集成验证，不是S7正式评分。
+- [x] 来源快照切换回归与审查修复通过；不改S0–S2冻结源码。实现及结果纳入本次本地提交。
+
+## S4a增益/尾部；S4b方向（以下保留原联合任务夹具，M2等仍未实现）
 
 - [ ] 在`test_streaming_metrics.py`加入以下数值夹具（函数名为拟定API），确认缺模块的RED：
 
