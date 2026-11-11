@@ -4,6 +4,8 @@
 
 ## V2当前入口
 
+2026-11-11文档修订：已依据[审查报告R1–R9](SCENARIO_EVALUATION_REVIEW.md)同步修订3A设计与计划，尚未实现/运行。实现顺序固定为S0协议→S1数据/GT来源→S2真实冻结重放→S3固定lead→S4指标/窗口标签→S5分片原始预测→S6统计审计→S7冻结后全量运行。完整episode归并与停车指标留3B。
+
 - 当前文档分支：`feature/scenario-evaluation`；worktree：`.worktrees/scenario-evaluation`。最新已完成实验Phase 2D保留在`feature/noise-aware-stability`；Phase 1/2A、2B、2C分别保留在原对应分支/worktree，可独立复核。
 - Phase 1完成：608条开发轨迹、9条件、3噪声seed、4算法，65,664条明细；本阶段没有新增holdout评价或神经网络训练。
 - Phase 2A完成：在clean/0.5m噪声/离群三条件重建七候选，训练常数/运动/协方差/残差信息四门控；618项测试通过。离群条件相对NIS-KF ADE约降2.57%，但纯高斯噪声仍比KF差约1.38%。见[结果与限制](NOISE_AWARE_PHASE2A_RESULTS.md)。上游GRU/map权重冻结，仅重建输入；没有新增holdout评价。
