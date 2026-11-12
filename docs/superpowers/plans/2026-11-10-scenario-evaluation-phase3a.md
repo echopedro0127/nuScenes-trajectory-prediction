@@ -8,9 +8,9 @@
 
 **Tech Stack:** 既有Python/NumPy/PyTorch/pandas/pytest/Matplotlib环境，不新增大型依赖。
 
-**Status:** S0–S3、[S4a增益/尾部](../../SCENARIO_EVALUATION_S4A_RESULTS.md)及[S4b方向](../../SCENARIO_EVALUATION_S4B_RESULTS.md)已实现并通过真实子集验证；S4c/d及以后仍是计划，恢复/标签与完整评测CLI尚未创建。
+**Status:** S0–S3、S4a/b及[S4c恢复](../../SCENARIO_EVALUATION_S4C_RESULTS.md)已实现并通过真实有界试验验证；S4d及以后仍是计划，窗口标签与完整评测CLI尚未创建。
 
-**审查修订：2026-11-11；进度更新：2026-11-12。** 已按[R1–R9](../../SCENARIO_EVALUATION_REVIEW.md)修订；当前完成范围为S0–S3、S4a/b及对应报告。3A限定窗口标签与相对时钟，canonical episode及停车误差指标属于3B。
+**审查修订：2026-11-11；进度更新：2026-11-12。** 已按[R1–R9](../../SCENARIO_EVALUATION_REVIEW.md)修订；当前完成范围为S0–S3、S4a/b/c及对应报告。3A限定窗口标签与相对时钟，canonical episode及停车误差指标属于3B。
 
 完整协议见[开发设计](../../SCENARIO_EVALUATION_DEVELOPMENT.md)。在当前`feature/scenario-evaluation`独立worktree执行；父`noise-aware-stability`只读。S7的完整评测CLI仍是拟实现接口；已可用的S0–S2入口为`scripts/run_scenario_preflight.py`。
 
@@ -153,7 +153,7 @@ event_labels:
 - [x] 新增revision_metrics.py，保持S3源码冻结；同目标增益、严格阈值分类及更新对/窗口宏平均分母分名。
 - [x] 固定lead分位数、窗口均值分位数、严格E>2 miss及按k的online_MR2_remaining。
 - [x] 27项新测试、完整744项回归通过；真实S2子集310,336个增益、346,144个误差、131,296个remaining标记独立核对通过。
-- [x] S4a来源快照审查问题修复，子集结果和局限见阶段报告；S4b方向分解随后已完成，恢复及标签仍待实现。
+- [x] S4a来源快照审查问题修复，子集结果和局限见阶段报告；S4b方向分解与S4c恢复随后已完成，窗口标签仍待实现。
 
 以下保留原联合任务逐项追踪，S4a/b均已完成；结果口径以各阶段报告为准。
 
@@ -193,7 +193,9 @@ def test_gain_compares_the_same_target_time():
 
 ## S4c：首个离群事件的配对与额外位置误差恢复
 
-- [ ] 写`test_event_metrics.py`并先RED；接口`recovery_from_excess(excess, dt, threshold_m, consecutive_updates)`只处理已配对的非负A数组，输出affected/recovered/confirm_delay_s/excess_auc。
+已完成，API位于event_metrics.py，完整配对pilot及独立verify-only入口为scripts/check_scenario_recovery.py。原S2邻域没有完整同seed配对，故预先固定哈希每角色cap8窗口、三个noise seed，从父完整缓存冻结重放双条件；这不改变S7原全量队列。详见阶段报告。
+
+- [x] 写`test_event_metrics.py`并先RED；接口`recovery_from_excess(excess, dt, threshold_m, consecutive_updates)`只处理已配对的非负A数组，输出affected/recovered/confirm_delay_s/excess_auc。
 
 ```python
 import numpy as np
@@ -214,12 +216,12 @@ def test_recovery_needs_sustained_confirmation():
     assert np.isclose(r['excess_auc'][0], .525)
 ```
 
-- [ ] 配对按role/instance/sample/noise_seed/模型身份匹配，拒绝缺失/重复配对或GT不一致，不能仅按行号相减。
-- [ ] 构造A的上层逻辑只使用固定1s提前量；主事件step4至7，第8步不加入主窗口。v1预期完整预测/配对缺失即终止；不能用不可评价跳过。仅显式声明的未来短窗协议允许insufficient_followup。
-- [ ] 恢复必须在首次受损后，至少两次连续合格且窗内不再复发；未受损事件单列。确认延迟不是首次低误差时刻，更不是预测剩余时长。
-- [ ] 输出每事件A序列、配对键、AUC、恢复状态和确认step，原始证据可独立重算；GREEN后提交。
-- [ ] 计数断言eligible=affected+unaffected、affected=recovered+not_recovered。AUC包含未受损事件；恢复/未恢复率分母affected，未受损率分母eligible，延迟仅recovered并给计数；分母零输出null。比较策略使用共同eligible键，但affected允许依模型不同。
-- [ ] 回归GT零、参考(3,0)、受扰(0,3)夹具：A=0且两预测相距sqrt(18)，报告应称额外位置误差恢复并联合绝对E，不声称状态恢复。确认延迟从step4起计，仅1.0/1.5s或未确认。
+- [x] 配对按role/instance/sample/noise_seed/模型身份匹配，拒绝缺失/重复配对或GT不一致，不仅按行号相减。
+- [x] 构造A只用固定1s提前量；主事件step4至7，step8不加入。v1完整预测/配对缺失即终止；未来短窗协议未实现，不以不可评价跳过本轮错误。
+- [x] 恢复在首次受损后至少两次连续合格且窗末无复发；未受损单列。确认延迟不是首次低误差或预测剩余时长，最终无复发状态需离线窗末复核。
+- [x] 输出每事件A、配对键、AUC、状态、确认step及原始P；独立标量与全预测重放通过，纳入本次本地提交。
+- [x] 计数守恒；AUC含未受损，恢复率分母affected，未受损率分母eligible，延迟仅recovered并给计数，零分母null；策略共同eligible，affected可不同。
+- [x] A=0但预测相距sqrt(18)夹具通过；联合绝对E与D诊断，不称状态恢复。确认延迟仅1.0/1.5s或未确认。
 
 ## S4d：离线窗口标签与抽查清单
 
