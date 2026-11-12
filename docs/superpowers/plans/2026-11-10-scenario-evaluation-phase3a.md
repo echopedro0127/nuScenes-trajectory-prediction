@@ -8,9 +8,9 @@
 
 **Tech Stack:** 既有Python/NumPy/PyTorch/pandas/pytest/Matplotlib环境，不新增大型依赖。
 
-**Status:** S0–S3、S4a/b及[S4c恢复](../../SCENARIO_EVALUATION_S4C_RESULTS.md)已实现并通过真实有界试验验证；S4d及以后仍是计划，窗口标签与完整评测CLI尚未创建。
+**Status:** S0–S4已实现并验证，见[S4d标签报告](../../SCENARIO_EVALUATION_S4D_RESULTS.md)；人工标签复核仍pending。S5及以后仍是计划，完整重放发布/报告CLI尚未创建，未运行正式全量新评分。
 
-**审查修订：2026-11-11；进度更新：2026-11-12。** 已按[R1–R9](../../SCENARIO_EVALUATION_REVIEW.md)修订；当前完成范围为S0–S3、S4a/b/c及对应报告。3A限定窗口标签与相对时钟，canonical episode及停车误差指标属于3B。
+**审查修订：2026-11-11；进度更新：2026-11-12。** 已按[R1–R9](../../SCENARIO_EVALUATION_REVIEW.md)修订；S0–S4代码及阶段验证完成，人工复核单独pending。3A限定窗口标签与相对时钟，canonical episode及停车误差指标属于3B。
 
 完整协议见[开发设计](../../SCENARIO_EVALUATION_DEVELOPMENT.md)。在当前`feature/scenario-evaluation`独立worktree执行；父`noise-aware-stability`只读。S7的完整评测CLI仍是拟实现接口；已可用的S0–S2入口为`scripts/run_scenario_preflight.py`。
 
@@ -153,7 +153,7 @@ event_labels:
 - [x] 新增revision_metrics.py，保持S3源码冻结；同目标增益、严格阈值分类及更新对/窗口宏平均分母分名。
 - [x] 固定lead分位数、窗口均值分位数、严格E>2 miss及按k的online_MR2_remaining。
 - [x] 27项新测试、完整744项回归通过；真实S2子集310,336个增益、346,144个误差、131,296个remaining标记独立核对通过。
-- [x] S4a来源快照审查问题修复，子集结果和局限见阶段报告；S4b方向分解与S4c恢复随后已完成，窗口标签仍待实现。
+- [x] S4a来源快照审查问题修复，子集结果和局限见阶段报告；S4b/c/d随后已实现，人工标签复核仍pending。
 
 以下保留原联合任务逐项追踪，S4a/b均已完成；结果口径以各阶段报告为准。
 
@@ -225,7 +225,7 @@ def test_recovery_needs_sustained_confirmation():
 
 ## S4d：离线窗口标签与抽查清单
 
-- [ ] 写`test_scenario_events.py`，测试净航向接近0的S弯仍有累计转角，低速乱向不能触发转弯标签，平均加速度接近0的走停过程仍可出现急刹事件。
+- [x] 写`test_scenario_events.py`，覆盖净航向抵消的S弯、低速断段、走停中的局部急刹及删失边界；先RED再实现。
 
 ```python
 import numpy as np
@@ -238,12 +238,13 @@ def test_s_turn_cannot_be_lost_by_net_yaw_cancellation():
     assert 's_turn_candidate' in tags
 ```
 
-- [ ] 实现窗口事件表：window_key、相对onset/end、instance/scene/log、事件类型、规则版本、status/reason及原始/平滑速度和方向证据。旧净航向标签和旧报告保持不变；不在3A输出canonical episode ID。
-- [ ] 按设计§6实现速度区间、中值边界、加速度时间对齐和完整两区间持续条件；prior四区间不足记不可评价。方向wrap且低速/缺失断段，不能跨停车拼接S弯；0.3至1之间creeping、不算重启。先RED测试初始静止、窗尾不足、短停、阈值等值及±pi跨界，再GREEN。
-- [ ] 3B再做完整track canonical事件及窗口关联；本阶段禁止onset<=1s传递闭包合并。新标签不可加入predict_motion输入。
-- [ ] 只对已有窗口打标签，不改变3A采样；生成每log/tag最多20例哈希抽查清单，人工完成字段为空或pending时报告未复核，不自动声称标签正确。
-- [ ] 图中标注“GT离线标签”，图像/未来标签不传给模型；GREEN后提交。
-- [ ] 保存rule_label与人工label/reviewer/reason，review_status仅pending/confirmed/rejected/corrected；人工更改不能覆盖原规则，pending不计已完成。
+- [x] 窗口事件表包含相对onset/end、身份、规则版本、状态/原因和速度/方向证据；旧标签共存，旧报告不变，无canonical episode ID。
+- [x] 速度/平滑/加速度时间和持续条件、prior有效性、方向断段、爬行、短停/窗尾、角度wrap等通过测试；两项stop-go审查缺口已修复。
+- [x] 仅窗口规则；3B再定完整track canonical事件，未进行链式归并；标签不进入predict_motion。
+- [x] 608个既有窗口去noise重复标注，固定每role/log/tag最多20个阳性窗口，75条清单全部pending，不改采样。
+- [x] 离线GT三联图及HTML明确pending，不传入模型；62张图已生成，825项回归通过，代码纳入本次本地提交。
+- [x] 保留rule_label、manual_label/reviewer/reason，支持保留history的人工修订API；本轮无人工修订，pending不计完成。
+- [ ] 人工复核75条候选，另存带复核人/原因的版本；当前完成0条，不以规则生成替代人工完成。
 
 ## S5：全策略分片重放与原始预测发布器
 

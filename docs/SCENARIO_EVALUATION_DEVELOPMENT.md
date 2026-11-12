@@ -2,7 +2,7 @@
 
 日期：2026-11-10；审查修订：2026-11-11。文档分支：`feature/scenario-evaluation`，worktree：`.worktrees/scenario-evaluation`。
 
-**状态：S0–S3及S4a/b/c已完成；S4d和正式3A全量评分尚未实施。** 证据见[S0–S2报告](SCENARIO_EVALUATION_S0_S2_RESULTS.md)、[S3报告](SCENARIO_EVALUATION_S3_RESULTS.md)、[S4a报告](SCENARIO_EVALUATION_S4A_RESULTS.md)、[S4b报告](SCENARIO_EVALUATION_S4B_RESULTS.md)及[S4c报告](SCENARIO_EVALUATION_S4C_RESULTS.md)。目前均为真实有界试验/核验，不将其包装为全量模型提升。
+**状态：S0–S4已实现；S4d人工复核待完成，S5/S6及正式3A全量评分尚未实施。** 证据见[S0–S2](SCENARIO_EVALUATION_S0_S2_RESULTS.md)、[S3](SCENARIO_EVALUATION_S3_RESULTS.md)、[S4a](SCENARIO_EVALUATION_S4A_RESULTS.md)、[S4b](SCENARIO_EVALUATION_S4B_RESULTS.md)、[S4c](SCENARIO_EVALUATION_S4C_RESULTS.md)及[S4d报告](SCENARIO_EVALUATION_S4D_RESULTS.md)。指标目前为有界试验，规则标签不是人工真值，不包装为全量模型提升。
 
 本次依据[审查报告](SCENARIO_EVALUATION_REVIEW.md)R1–R9修订协议；修订只代表文档采纳，代码验收仍待执行。以下条款与执行计划共同构成拟冻结的`scenario_evaluation_v1`，首次正式成绩计算前绑定配置、源码与输入哈希。
 
@@ -171,6 +171,8 @@ noise_outlier与noise_05按角色、窗口键、噪声seed及同一冻结模型�
 标签只是候选场景，不是人工行为真值。按log/类别固定哈希抽样，每组最多20个窗口人工复核，不足则全查；保存rule_label、rule_version、review_status=pending/confirmed/rejected/corrected、reviewer、修订原因及人工标签。pending不等于完成，人工修订不覆盖规则标签，也不查看模型排名后挑选案例。
 
 首轮3A只给已有窗口增加标签，不改变采样；保存窗口键及相对onset/end，报告窗口/instance/log数，不宣称独立episode数。3B才在原fit/select完整track上抽取canonical事件后关联重叠窗口，训练/选择角色不跨log。禁止单纯按onset相距<=1s的传递闭包合并：0/0.8/1.6s可能串联多个事件。3B独立冻结绝对时钟、事件区间、stop/restart分隔和ID算法，再报告episode数。
+
+S4d v1实施口径：阳性onset在[0,6)，历史[-2,0)仅作上下文；跨左边界急刹保留删失证据。初始状态取anchor前最后平滑速度区间；观察到低速dwell但无符合prior条件的stop，后续持续起步标缺少已确认stop，不当阴性。S/U形状在未来最大连续可靠方向段上计算，区间边界不是人工行为起止。图表及候选抽查均为离线GT辅助，人工完成状态单独记录。
 
 ## 7. 停车及道路指标的后续契约
 
