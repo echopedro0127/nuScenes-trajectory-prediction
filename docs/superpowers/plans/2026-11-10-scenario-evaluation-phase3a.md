@@ -8,9 +8,9 @@
 
 **Tech Stack:** 既有Python/NumPy/PyTorch/pandas/pytest/Matplotlib环境，不新增大型依赖。
 
-**Status:** S0–S2预检及[S3固定lead](../../SCENARIO_EVALUATION_S3_RESULTS.md)已实现并通过真实子集验证；S4及以后仍是计划，增益/方向/恢复/标签及完整评测CLI尚未创建。
+**Status:** S0–S3及[S4a增益/尾部](../../SCENARIO_EVALUATION_S4A_RESULTS.md)已实现并通过真实子集验证；S4b/c/d及以后仍是计划，方向/恢复/标签与完整评测CLI尚未创建。
 
-**审查修订：2026-11-11；进度更新：2026-11-12。** 已按[R1–R9](../../SCENARIO_EVALUATION_REVIEW.md)修订；当前完成范围为S0–S3及对应阶段报告。3A限定窗口标签与相对时钟，canonical episode及停车误差指标属于3B。
+**审查修订：2026-11-11；进度更新：2026-11-12。** 已按[R1–R9](../../SCENARIO_EVALUATION_REVIEW.md)修订；当前完成范围为S0–S3和S4a及对应报告。3A限定窗口标签与相对时钟，canonical episode及停车误差指标属于3B。
 
 完整协议见[开发设计](../../SCENARIO_EVALUATION_DEVELOPMENT.md)。在当前`feature/scenario-evaluation`独立worktree执行；父`noise-aware-stability`只读。S7的完整评测CLI仍是拟实现接口；已可用的S0–S2入口为`scripts/run_scenario_preflight.py`。
 
@@ -148,15 +148,21 @@ event_labels:
 - [x] 已保存的32个真实S2预测分片、三个lead共346,144个误差逐项对比通过；这是子集集成验证，不是S7正式评分。
 - [x] 来源快照切换回归与审查修复通过；不改S0–S2冻结源码。实现及结果纳入本次本地提交。
 
-## S4a增益/尾部；S4b方向（以下保留原联合任务夹具，M2等仍未实现）
+## S4a增益/尾部已完成；S4b方向待实现
 
-- [ ] 在`test_streaming_metrics.py`加入以下数值夹具（函数名为拟定API），确认缺模块的RED：
+- [x] 新增revision_metrics.py，保持S3源码冻结；同目标增益、严格阈值分类及更新对/窗口宏平均分母分名。
+- [x] 固定lead分位数、窗口均值分位数、严格E>2 miss及按k的online_MR2_remaining。
+- [x] 27项新测试、完整744项回归通过；真实S2子集310,336个增益、346,144个误差、131,296个remaining标记独立核对通过。
+- [x] 来源快照审查问题修复，子集结果和局限见阶段报告；方向分解、恢复及标签未实现。
+
+以下保留原联合任务逐项追踪；与方向混合的条目仍不勾选，以免将M4计为完成。
+
+- [x] 在`test_streaming_metrics.py`及`test_revision_metrics.py`覆盖以下数值夹具，确认RED后实现（API分模块以保留S3冻结）：
 
 ```python
 import numpy as np
-from trajectory_prediction.evaluation.streaming_metrics import (
-    fixed_lead_errors, revision_gains,
-)
+from trajectory_prediction.evaluation.streaming_metrics import fixed_lead_errors
+from trajectory_prediction.evaluation.revision_metrics import revision_gains
 
 def test_one_second_lead_uses_absolute_target_column():
     p = np.zeros((1, 11, 12, 2), np.float32)
@@ -176,13 +182,14 @@ def test_gain_compares_the_same_target_time():
     assert r['values'][0, 0] == 2.0
 ```
 
-- [ ] 实现该纯函数API：预测/GT shape及有限性校验；返回values/query_steps/target_columns；无效尾部排除，不生成伪GT。增益的values指有符号G，另返回beneficial/harmful/neutral布尔数组。
-- [ ] 唯一索引为`j=k+m-1; current=P[:,k-1,j,:]; previous=P[:,k-2,j,:]`，previous仅k>=2。输出query_row/query_time_s/target_time_s；另用逐k慢速标量参考测试全部h及随机小夹具，不能复用同一向量实现证明自己。
+- [x] 实现该纯函数API：预测/GT shape及有限性校验；返回values/query_steps/target_columns；无效尾部排除，不生成伪GT。增益的values指有符号G，另返回beneficial/harmful/neutral布尔数组。
+- [x] 唯一索引为`j=k+m-1; current=P[:,k-1,j,:]; previous=P[:,k-2,j,:]`，previous仅k>=2。输出query_rows/query_times_s/target_times_s；另用逐k慢速标量参考测试全部h及随机小夹具，不复用同一向量实现证明自己。
 - [ ] 增加GT当前参考方向投影测试：同一误差在固定d/n下有已知纵横向分量，零速无历史方向记invalid，不得取未来方向补齐。
-- [ ] 增加Miss边界、空/少样本quantile分母测试。阈值使用严格`>2m`，同值不算miss；P95/P99始终附带窗口/log/更新数量。
-- [ ] M2正负0.05恰等值均neutral，三类同分母；用float64阈值夹具区分语义与存储精度。M4低速只沿用过去最后有效方向，无方向仅该查询M4无效，不删整窗口。
-- [ ] 验证误差`[[0,0,10],[4,4,4]]`的`p95_query_error=8.5`与`p95_window_mean_error≈3.9666667`分别命名，quantile method=linear；计数覆盖零事件、单log和三noise重复。
-- [ ] GREEN后保持原ADE/FDE/jitter函数调用不变，提交纯指标模块。
+- [x] 增加Miss边界、空/少样本quantile分母测试。严格`>2m`，同值不算miss；P95/P99附带窗口/查询数，集成分组另给log数。
+- [x] M2正负0.05恰等值均neutral，三类同分母；用float64阈值夹具区分语义与存储精度。
+- [ ] M4低速只沿用过去最后有效方向，无方向仅该查询M4无效，不删整窗口。
+- [x] 验证误差`[[0,0,10],[4,4,4]]`的`p95_query_error=8.5`与`p95_window_mean_error≈3.9666667`分别命名，quantile method=linear；计数覆盖空组、单窗口与noise重复。
+- [x] GREEN后保持原ADE/FDE/jitter函数调用不变，纯指标模块纳入本次本地提交。
 
 ## S4c：首个离群事件的配对与额外位置误差恢复
 

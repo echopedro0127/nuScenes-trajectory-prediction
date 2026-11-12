@@ -4,6 +4,8 @@
 
 ## V2当前入口
 
+2026-11-12后续：S4a同目标增益、有益/有害/中性比例、分位数和Miss已实现，31万余增益值完成子集标量核验，744项回归通过，见[S4a报告](SCENARIO_EVALUATION_S4A_RESULTS.md)。当前下一步S4b纵横向分解；无正式全量新成绩。
+
 2026-11-12：S3固定0.5/1/2s提前量纯指标已实现，32个S2预测分片的346,144个误差通过独立标量参考验证，见[S3报告](SCENARIO_EVALUATION_S3_RESULTS.md)。当前下一步为S4a同目标修正增益/尾部；S4b/c/d随后接入，尚无正式全量新成绩。
 
 2026-11-11进度：已依据[审查报告R1–R9](SCENARIO_EVALUATION_REVIEW.md)修订设计，并实现S0协议→S1数据/GT来源→S2真实冻结重放，见[阶段报告](SCENARIO_EVALUATION_S0_S2_RESULTS.md)。下一步S3固定lead→S4指标/窗口标签→S5分片原始预测→S6统计审计→S7冻结后全量运行。完整episode归并与停车指标留3B。
