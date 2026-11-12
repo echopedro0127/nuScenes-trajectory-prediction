@@ -8,7 +8,7 @@
 
 **Tech Stack:** 既有Python/NumPy/PyTorch/pandas/pytest/Matplotlib环境，不新增大型依赖。
 
-**Status:** S0–S5已实现，见[S5发布器报告](../../SCENARIO_EVALUATION_S5_RESULTS.md)；人工标签复核仍pending。S5仅做小夹具发布验收与真实资源预检，S6报告器尚未实现，未运行S7正式全量新评分。
+**Status:** S0–S5已实现；S6a逐查询/condition/log报告器已开发，见[S6a报告](../../SCENARIO_EVALUATION_S6A_RESULTS.md)。S6尚未完成，M3/机动标签装配、训练seed汇总与案例图待实现；人工复核仍pending。仅小夹具验收与资源预检，未运行S7正式全量新评分。
 
 **审查修订：2026-11-11；进度更新：2026-11-12。** 已按[R1–R9](../../SCENARIO_EVALUATION_REVIEW.md)修订；S0–S4代码及阶段验证完成，人工复核单独pending。3A限定窗口标签与相对时钟，canonical episode及停车误差指标属于3B。
 
@@ -258,6 +258,8 @@ def test_s_turn_cannot_be_lost_by_net_yaw_cancellation():
 - [ ] 完整旧指标兼容在S7执行；当前只开发/验证发布器，不提前跑全量成绩，也不修改父成绩。
 
 ## S6：统计、确定性案例及独立审计器
+
+执行拆分（2026-11-12）：S6a先实现M1/M2/M4/M5查询数组、condition/log分组和独立标量核对；S6b依赖S6a装配M3与机动/规则标签；S6c再汇总训练seed、确定性案例及完整报告验收。S6a使用小夹具，不代表以下整个清单已完成；证据见[S6a报告](../../SCENARIO_EVALUATION_S6A_RESULTS.md)。
 
 - [ ] 写`test_scenario_report.py`小型端到端：文件/哈希齐全、拒绝覆盖、篡改拒绝、物理候选train_seed为空、缺预期配对抛错、无方向/空组等合法不可评价保留原因、重复噪声不膨胀独立窗口数。
 - [ ] 报告至少含逐更新M1/M2、逐事件M3、新旧机动组、M4/M5、逐log、逐训练seed及有效/不可评价计数。禁止把三类合成/真实数据混为单个总分。
