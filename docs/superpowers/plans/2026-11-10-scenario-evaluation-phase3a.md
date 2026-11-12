@@ -8,7 +8,7 @@
 
 **Tech Stack:** 既有Python/NumPy/PyTorch/pandas/pytest/Matplotlib环境，不新增大型依赖。
 
-**Status:** S0–S4已实现并验证，见[S4d标签报告](../../SCENARIO_EVALUATION_S4D_RESULTS.md)；人工标签复核仍pending。S5及以后仍是计划，完整重放发布/报告CLI尚未创建，未运行正式全量新评分。
+**Status:** S0–S5已实现，见[S5发布器报告](../../SCENARIO_EVALUATION_S5_RESULTS.md)；人工标签复核仍pending。S5仅做小夹具发布验收与真实资源预检，S6报告器尚未实现，未运行S7正式全量新评分。
 
 **审查修订：2026-11-11；进度更新：2026-11-12。** 已按[R1–R9](../../SCENARIO_EVALUATION_REVIEW.md)修订；S0–S4代码及阶段验证完成，人工复核单独pending。3A限定窗口标签与相对时钟，canonical episode及停车误差指标属于3B。
 
