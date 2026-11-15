@@ -2,7 +2,7 @@
 
 日期：2026-11-10；审查修订：2026-11-11。文档分支：`feature/scenario-evaluation`，worktree：`.worktrees/scenario-evaluation`。
 
-**状态：S0–S6开发链路已实现，S7正式3A全量运行尚未开始。** 证据见[S6c](SCENARIO_EVALUATION_S6C_RESULTS.md)及前序[S5](SCENARIO_EVALUATION_S5_RESULTS.md)、[S6a](SCENARIO_EVALUATION_S6A_RESULTS.md)、[S6b](SCENARIO_EVALUATION_S6B_RESULTS.md)报告。S4d人工复核仍pending。当前仅小夹具验收、资源预检及前期有界试验，规则标签不是人工真值，不包装为全量模型提升。
+**状态：S0–S6已实现，S7统一入口验收通过，正式冻结与全量运行即将执行。** 执行约束见[S7协议](SCENARIO_EVALUATION_S7_PROTOCOL.md)，开发证据见[S6c](SCENARIO_EVALUATION_S6C_RESULTS.md)及前序报告。S4d人工复核仍pending；规则标签不是人工真值，不包装为模型提升。
 
 本次依据[审查报告](SCENARIO_EVALUATION_REVIEW.md)R1–R9修订协议；修订只代表文档采纳，代码验收仍待执行。以下条款与执行计划共同构成拟冻结的`scenario_evaluation_v1`，首次正式成绩计算前绑定配置、源码与输入哈希。
 

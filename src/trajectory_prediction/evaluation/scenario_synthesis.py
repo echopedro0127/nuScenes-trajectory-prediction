@@ -207,7 +207,7 @@ def _documents(binding):
     summary = {'case_count': len(cases), 'seed_model_count': 9, 'physical_strategy_count': 7,
                'formal_full_run': False, 'neural_training': False, 'holdout_evaluated': False,
                'manual_completed': 0, 's6_development_complete': True,
-               'scope': 'development_fixture_acceptance_not_phase3a_formal_results'}
+               'scope': 'component_summary_requires_top_level_formal_acceptance'}
     return {'query_seed_stats.json': aggregate_seeds(_read(events / 'maneuver_query_groups.json'), registry['strategies']),
             'event_seed_stats.json': aggregate_seeds(_read(events / 'event_groups.json'), registry['strategies']),
             'case_ranking.json': error_rows, 'case_manifest.json': cases, 'summary.json': summary,
@@ -295,10 +295,10 @@ def _plot(case, arrays):
 
 def _gallery(cases):
     rows = ['<!doctype html><meta charset="utf-8"><title>S6c shared cases</title>',
-            '<h1>Development shared cases; manual review pending</h1>',
+            '<h1>Shared cases; manual review pending</h1>',
             ('<p>16 strategies select cases; five fixed strategies shown. Neural display seed=2027. '
             'Colors indicate arrival time (0.5–5.5s); red X marks arrived injected outliers. '
-             'All panels of each case share axes. Not formal Phase 3A results.</p>')]
+             'All panels of each case share axes. See top-level audit for experiment acceptance.</p>')]
     for case in cases:
         rows.append(f"<h2>{html.escape(case['role'] + ' / ' + case['condition'])}</h2>"
                     f"<p>{html.escape(', '.join(case['selection_reasons']))}</p>"

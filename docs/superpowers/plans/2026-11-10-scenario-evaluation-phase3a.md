@@ -8,7 +8,7 @@
 
 **Tech Stack:** 既有Python/NumPy/PyTorch/pandas/pytest/Matplotlib环境，不新增大型依赖。
 
-**Status:** S0–S6开发验收已实现，训练seed汇总与共同案例见[S6c报告](../../SCENARIO_EVALUATION_S6C_RESULTS.md)。人工复核仍pending。仅小夹具验收与资源预检，未运行S7正式全量新评分；统一S7入口与冻结清单仍待落实。
+**Status:** S0–S6开发验收已实现；S7统一入口和冻结机制正在验收，见[S7协议](../../SCENARIO_EVALUATION_S7_PROTOCOL.md)。人工复核仍pending。正式全量新评分尚未开始，需先通过入口与来源时序检查并提交源码。
 
 **审查修订：2026-11-11；进度更新：2026-11-15。** 已按[R1–R9](../../SCENARIO_EVALUATION_REVIEW.md)修订；S0–S6b阶段验证逐步落实，人工复核单独pending。3A限定窗口标签与相对时钟，canonical episode及停车误差指标属于3B。
 
@@ -272,13 +272,16 @@ def test_s_turn_cannot_be_lost_by_net_yaw_cancellation():
 
 - [ ] 运行新测试，确认RED→GREEN证据；执行全量`pytest`、`ruff check src scripts tests`、`scripts/check_public_repo.py`及`git diff --check`。测试临时目录先创建在outputs下。
 - [ ] 审阅是否存在GT标签进入输入、缺包补GT、不同目标时间相减、缩短horizon冒充恢复、模型seed混为noise seed等问题。
-- [ ] 冻结源码/配置再运行以下拟实现接口；此处是接口约定，文档阶段不执行：
+- [ ] 先按[S7协议](../../SCENARIO_EVALUATION_S7_PROTOCOL.md)验收并提交源码，再独立冻结，最后执行以下已实现接口；未验收前不运行真实评分：
 
 ```powershell
 $env:PYTHONPATH = Join-Path (Get-Location) 'src'
 $env:OMP_NUM_THREADS = '2'
 $env:MKL_NUM_THREADS = '2'
 & '..\trajectory-mvp\.venv\Scripts\python.exe' scripts/run_scenario_evaluation.py `
+  --freeze-root outputs/scenario-evaluation/freeze-phase3a-v1 --freeze-only
+& '..\trajectory-mvp\.venv\Scripts\python.exe' scripts/run_scenario_evaluation.py `
+  --freeze-root outputs/scenario-evaluation/freeze-phase3a-v1 `
   --parent ../noise-aware-stability/outputs/noise-aware/phase2d `
   --parent-project-root ../noise-aware-stability `
   --config configs/analysis/scenario_evaluation.yaml `
