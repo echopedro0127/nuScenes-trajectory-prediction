@@ -8,7 +8,7 @@
 
 **Tech Stack:** 既有Python/NumPy/PyTorch/pandas/pytest/Matplotlib环境，不新增大型依赖。
 
-**Status:** S0–S5、S6a查询报告器及S6b事件/机动标签装配已实现，见[S6b报告](../../SCENARIO_EVALUATION_S6B_RESULTS.md)。S6尚未完成，训练seed汇总与案例图待实现；人工复核仍pending。仅小夹具验收与资源预检，未运行S7正式全量新评分。
+**Status:** S0–S6开发验收已实现，训练seed汇总与共同案例见[S6c报告](../../SCENARIO_EVALUATION_S6C_RESULTS.md)。人工复核仍pending。仅小夹具验收与资源预检，未运行S7正式全量新评分；统一S7入口与冻结清单仍待落实。
 
 **审查修订：2026-11-11；进度更新：2026-11-15。** 已按[R1–R9](../../SCENARIO_EVALUATION_REVIEW.md)修订；S0–S6b阶段验证逐步落实，人工复核单独pending。3A限定窗口标签与相对时钟，canonical episode及停车误差指标属于3B。
 
@@ -261,12 +261,12 @@ def test_s_turn_cannot_be_lost_by_net_yaw_cancellation():
 
 执行拆分（2026-11-12）：S6a先实现M1/M2/M4/M5查询数组、condition/log分组和独立标量核对；S6b依赖S6a装配M3与机动/规则标签；S6c再汇总训练seed、确定性案例及完整报告验收。S6a使用小夹具，不代表以下整个清单已完成；证据见[S6a报告](../../SCENARIO_EVALUATION_S6A_RESULTS.md)。
 
-- [ ] 写`test_scenario_report.py`小型端到端：文件/哈希齐全、拒绝覆盖、篡改拒绝、物理候选train_seed为空、缺预期配对抛错、无方向/空组等合法不可评价保留原因、重复噪声不膨胀独立窗口数。
-- [ ] 报告至少含逐更新M1/M2、逐事件M3、新旧机动组、M4/M5、逐log、逐训练seed及有效/不可评价计数。禁止把三类合成/真实数据混为单个总分。
-- [ ] 严格执行设计§5.1聚合表：均值query→noise→window，分位数query池化且linear，M2/M5比例明确查询/更新分母，M3状态守恒。window主均值与log_macro_mean分名，给有效log数；模型seed先逐模型评价再ddof=1，不混池。4个select log只给描述统计。
-- [ ] 内部NaN+mask只能表示声明的不可评价，导出null/status/reason；JSON allow_nan=False。坏预测/GT错配/缺配对终止，不能转成null掩盖完整性错误。
-- [ ] 预先选取按标签哈希排序的案例及各模型共同的top-error案例，固定策略/时刻集合；图含GT、预测、观测到达时刻、异常位置、同一坐标轴和评价时间点，不只画获胜案例。
-- [ ] verify-only第一层从不可变P/GT重算全部指标/汇总和计数；第二层固定哈希样本模型重放对照P。旧指标调用旧函数，新指标用慢速标量参考校验，不能仅复读summary或重复调用同一向量函数。小夹具全部通过后提交验收代码。
+- [x] 小型端到端已在S6a/b/c三个测试模块落实：文件/哈希、拒绝覆盖、篡改拒绝、物理train_seed为空、缺配对失败、无方向/空组状态、噪声重复不膨胀窗口数。
+- [x] S6a逐查询M1/M2/M4/M5、S6b逐事件M3及新旧机动组、逐log有效计数、S6c逐训练模型统计串联；condition分别报告，不生成混池总分。
+- [x] query→noise→window均值、linear查询分位数、M2/M5分母、M3状态守恒、独立log宏均值及有效log数均已实现并标量核对；训练seed先独立评价再ddof=1。select log仅描述统计。
+- [x] 合法不可评价以mask/null/status/reason保留，JSON拒绝非有限数；坏预测/GT错配/缺配对失败，不转成统计缺失。
+- [x] 标签哈希案例与各策略共同top-error并集，固定展示5策略及k3/4/6；图含GT/预测、到达时间色标、异常位置、共享坐标和1秒lead评价点。夹具6案例/90面板通过生成与重绘核对。
+- [x] verify链从P/GT重算指标/汇总/计数，复用原旧指标函数，新指标与汇总独立标量核对；上游模型采用全部冻结预测重放，比计划的固定样本更严格；案例NPZ/PNG/HTML另做语义重算。正式全量执行留S7。
 
 ## S7：冻结后正式全量运行与交付
 
