@@ -740,3 +740,13 @@ RH−CV ADE差−0.105097m，配对log bootstrap95%区间[−0.128439,−0.07484
 全部条件/log/次要模型完整保留；模型、候选、源码、逐项指标与bootstrap独立全量重放通过。582项pytest、Ruff和公开扫描通过。
 见[完整报告](CAUSAL_CONTEXT_INDEPENDENT_HOLDOUT_RESULTS.md)。此holdout已使用，不得继续在其上调参后当未见测试；单seed、6log、标注位置回放及已知数据重划分限制仍在。
 本轮不推送、不改简历，历史公开成绩不被静默替换；P7未启动。
+
+## Phase 3A / S7 冻结场景评测完成（2026-11-16）
+
+在feature/scenario-evaluation工作区完成S0–S7：源码aeae06b先验收并提交，再冻结c03f034c…0fc441，正式运行及单独verify-only通过。覆盖608窗口/26log/5472观测流/16策略，32预测分片、41共同案例，顶层身份5cd60def…dee019。
+
+新增逐查询M1/M2、配对恢复M3、方向M4、尾部M5，GT候选/旧机动组、逐log和三训练seed统计；10,156,032次数值核对最大差1.07e−14。S7新增6项测试，全套862项通过，Ruff及公开扫描通过。75条人工抽查仍pending，未训练或评价holdout。
+
+新指标揭示权衡而非全面提升：select固定1秒lead下Plus CA较Baseline7在noise_05改善2.350%，clean恶化3.617%；恢复AUC恶化4.207%，恢复率下降2.896个百分点。Raw CV/hold_position的高恢复率不能替代绝对误差。详见[正式结果](SCENARIO_EVALUATION_PHASE3A_RESULTS.md)。
+
+下一步先人工复核与3B episode去重协议，再冻结新训练假设；不拿历史holdout调参。此阶段只本地提交，未推送GitHub，V1 holdout成绩不被替换。

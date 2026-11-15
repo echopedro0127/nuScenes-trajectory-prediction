@@ -8,9 +8,9 @@
 
 **Tech Stack:** 既有Python/NumPy/PyTorch/pandas/pytest/Matplotlib环境，不新增大型依赖。
 
-**Status:** S0–S6开发验收已实现；S7统一入口和冻结机制正在验收，见[S7协议](../../SCENARIO_EVALUATION_S7_PROTOCOL.md)。人工复核仍pending。正式全量新评分尚未开始，需先通过入口与来源时序检查并提交源码。
+**Status:** S0–S7正式全量运行及单独verify-only均已通过，见[正式结果](../../SCENARIO_EVALUATION_PHASE3A_RESULTS.md)及[S7协议](../../SCENARIO_EVALUATION_S7_PROTOCOL.md)。人工复核仍pending。本轮不训练、不评价holdout，不将新指标包装为全面模型提升。
 
-**审查修订：2026-11-11；进度更新：2026-11-15。** 已按[R1–R9](../../SCENARIO_EVALUATION_REVIEW.md)修订；S0–S6b阶段验证逐步落实，人工复核单独pending。3A限定窗口标签与相对时钟，canonical episode及停车误差指标属于3B。
+**审查修订：2026-11-11；进度更新：2026-11-16。** 已按[R1–R9](../../SCENARIO_EVALUATION_REVIEW.md)修订并完成S0–S7；人工复核单独pending。3A限定窗口标签与相对时钟，canonical episode及停车误差指标属于3B。
 
 完整协议见[开发设计](../../SCENARIO_EVALUATION_DEVELOPMENT.md)。在当前`feature/scenario-evaluation`独立worktree执行；父`noise-aware-stability`只读。S7的完整评测CLI仍是拟实现接口；已可用的S0–S2入口为`scripts/run_scenario_preflight.py`。
 
@@ -270,9 +270,9 @@ def test_s_turn_cannot_be_lost_by_net_yaw_cancellation():
 
 ## S7：冻结后正式全量运行与交付
 
-- [ ] 运行新测试，确认RED→GREEN证据；执行全量`pytest`、`ruff check src scripts tests`、`scripts/check_public_repo.py`及`git diff --check`。测试临时目录先创建在outputs下。
-- [ ] 审阅是否存在GT标签进入输入、缺包补GT、不同目标时间相减、缩短horizon冒充恢复、模型seed混为noise seed等问题。
-- [ ] 先按[S7协议](../../SCENARIO_EVALUATION_S7_PROTOCOL.md)验收并提交源码，再独立冻结，最后执行以下已实现接口；未验收前不运行真实评分：
+- [x] S7新增6项、全套862项pytest通过；Ruff、公开扫描及diff检查通过，RED→GREEN与审查问题记录见S7协议。
+- [x] 复查GT/模型输入隔离、同目标修正、固定lead恢复、噪声与模型seed分离；人工标签状态保持pending，不引入holdout或新训练。
+- [x] 提交源码aeae06b后创建正式冻结c03f034c…0fc441，再执行以下接口；全量和单独verify-only通过：
 
 ```powershell
 $env:PYTHONPATH = Join-Path (Get-Location) 'src'
@@ -290,13 +290,13 @@ $env:MKL_NUM_THREADS = '2'
   --output-root outputs/scenario-evaluation/phase3a-v1 --verify-only
 ```
 
-- [ ] 全部9门控/7物理策略既有ADE/FDE/jitter逐项精确复现父结果；从保存P全量重算新指标/计数，再执行固定样本模型重放。任一失败不写完成标记，不事后改容差。
-- [ ] 最终产物：`protocol.json`、`run.json`、`keys.json`、按role/strategy原始P分片及共享GT/来源引用、逐查询/窗口/事件CSV或NPZ、逐log/model-seed统计、`summary.json`、`event_review.csv`、案例图、`audit.json`、`completed.json`。未复核标签明确标注，不能宣称人工完成。
-- [ ] 写`docs/SCENARIO_EVALUATION_PHASE3A_RESULTS.md`，记录所有模型及退化/缺失，不把“新指标有了数字”说成模型提升；更新路线，本地提交。GitHub推送不在本次范围。
+- [x] 9门控/7物理策略旧指标精确兼容；全部保存P和新指标/计数重算通过，模型采用完整重放，比固定样本更严格。无事后容差或阈值修改。
+- [x] 顶层凭据绑定217个产物文件，含协议/运行/流索引、预测/共享GT、查询/事件指标、逐log/model-seed统计、summary、75条pending抽查CSV、41案例、audit及completed。manual_completed=0。
+- [x] 正式结果报告保留所有模型、空组及负结果，路线和本地提交同步更新；未推送GitHub。
 
 ## 阶段完成标准
 
-以下为实现时必须验收的边界矩阵，文档阶段不勾选通过：
+以下保留冻结协议的边界/异常预期与对应验收阶段；实现证据见S0–S7各阶段报告，人工pending单独保留：
 
 | 边界/异常 | 预期行为 | 检查点 |
 | --- | --- | --- |

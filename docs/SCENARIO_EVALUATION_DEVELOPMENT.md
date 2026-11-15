@@ -2,7 +2,7 @@
 
 日期：2026-11-10；审查修订：2026-11-11。文档分支：`feature/scenario-evaluation`，worktree：`.worktrees/scenario-evaluation`。
 
-**状态：S0–S6已实现，S7统一入口验收通过，正式冻结与全量运行即将执行。** 执行约束见[S7协议](SCENARIO_EVALUATION_S7_PROTOCOL.md)，开发证据见[S6c](SCENARIO_EVALUATION_S6C_RESULTS.md)及前序报告。S4d人工复核仍pending；规则标签不是人工真值，不包装为模型提升。
+**状态：S0–S7正式评测已完成，单独verify-only通过。** 608窗口/5472流/16策略/41案例，完整结果及负结果见[Phase 3A报告](SCENARIO_EVALUATION_PHASE3A_RESULTS.md)，协议见[S7](SCENARIO_EVALUATION_S7_PROTOCOL.md)。S4d人工复核仍pending；规则标签不是人工真值，本轮不训练、不评价holdout，不包装为全面模型提升。
 
 本次依据[审查报告](SCENARIO_EVALUATION_REVIEW.md)R1–R9修订协议；修订只代表文档采纳，代码验收仍待执行。以下条款与执行计划共同构成拟冻结的`scenario_evaluation_v1`，首次正式成绩计算前绑定配置、源码与输入哈希。
 
