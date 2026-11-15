@@ -8,9 +8,9 @@
 
 **Tech Stack:** 既有Python/NumPy/PyTorch/pandas/pytest/Matplotlib环境，不新增大型依赖。
 
-**Status:** S0–S5已实现；S6a逐查询/condition/log报告器已开发，见[S6a报告](../../SCENARIO_EVALUATION_S6A_RESULTS.md)。S6尚未完成，M3/机动标签装配、训练seed汇总与案例图待实现；人工复核仍pending。仅小夹具验收与资源预检，未运行S7正式全量新评分。
+**Status:** S0–S5、S6a查询报告器及S6b事件/机动标签装配已实现，见[S6b报告](../../SCENARIO_EVALUATION_S6B_RESULTS.md)。S6尚未完成，训练seed汇总与案例图待实现；人工复核仍pending。仅小夹具验收与资源预检，未运行S7正式全量新评分。
 
-**审查修订：2026-11-11；进度更新：2026-11-12。** 已按[R1–R9](../../SCENARIO_EVALUATION_REVIEW.md)修订；S0–S4代码及阶段验证完成，人工复核单独pending。3A限定窗口标签与相对时钟，canonical episode及停车误差指标属于3B。
+**审查修订：2026-11-11；进度更新：2026-11-15。** 已按[R1–R9](../../SCENARIO_EVALUATION_REVIEW.md)修订；S0–S6b阶段验证逐步落实，人工复核单独pending。3A限定窗口标签与相对时钟，canonical episode及停车误差指标属于3B。
 
 完整协议见[开发设计](../../SCENARIO_EVALUATION_DEVELOPMENT.md)。在当前`feature/scenario-evaluation`独立worktree执行；父`noise-aware-stability`只读。S7的完整评测CLI仍是拟实现接口；已可用的S0–S2入口为`scripts/run_scenario_preflight.py`。
 
