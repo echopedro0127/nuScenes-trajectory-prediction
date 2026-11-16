@@ -100,6 +100,17 @@ def test_semantic_order_and_config_identity():
     assert a['events'][0]['event_id'] != changed['events'][0]['event_id']
 
 
+def test_partial_prior_interval_excluded_and_diagnostic_keeps_evidence():
+    result = run([2., .5, .5, .5, 0., 0.], [500000, 500000, 500000, 700000, 500000, 500000])
+    assert result['events'] == []
+    assert result['diagnostics'][0]['reason'] == 'no_recent_motion_evidence'
+    assert result['diagnostics'][0]['prior_interval_ids'] == ['i1', 'i2', 'i3']
+
+
+def test_initial_short_low_run_retains_boundary_flag():
+    assert run([0.])['diagnostics'][0]['initially_low_speed'] is True
+
+
 @pytest.mark.parametrize('field,value', [('speed_mps', float('nan')), ('speed_mps', -1.),
                                       ('dt_us', 0), ('left_token', 'broken')])
 def test_invalid_interval_rejected(field, value):

@@ -49,7 +49,9 @@ def extract_events(block, intervals, config):
                'status': 'not_evaluable' if reason.startswith(('insufficient', 'restart_without')) else 'rule_diagnostic',
                'onset_token': run[0]['left_token'], 'start_us': run[0]['start_us'],
                'end_token': run[-1]['right_token'], 'end_us': run[-1]['end_us'],
-               'observed_duration_us': sum(r['dt_us'] for r in run), 'interval_count': len(run), **extra}
+               'observed_duration_us': sum(r['dt_us'] for r in run), 'interval_count': len(run),
+               'initially_low_speed': run[0]['start_us'] == block['start_us']
+               and run[0]['speed_mps'] <= cfg['stop_speed_mps'], **extra}
         diagnostics.append(row)
         return row
 
@@ -98,7 +100,8 @@ def extract_events(block, intervals, config):
                 else:
                     reason = 'insufficient_prior_history' if not enough else 'no_recent_motion_evidence'
                     origin = ('initially_low_speed' if onset == block['start_us'] else reason)
-                    d = diag(reason, run, key, initially_low_speed=onset == block['start_us'], context_origin=origin)
+                    d = diag(reason, run, key, initially_low_speed=onset == block['start_us'], context_origin=origin,
+                             prior_interval_ids=[r['interval_id'] for r in prior])
                     context = {'kind': 'unpaired', 'origin': origin}
                     emitted[confirmation] = [d['_key']]
         elif kind == 'high' and before is not None:
