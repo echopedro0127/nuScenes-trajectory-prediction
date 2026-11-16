@@ -764,3 +764,9 @@ RH−CV ADE差−0.105097m，配对log bootstrap95%区间[−0.128439,−0.07484
 在feature/scenario-episodes实现有界JSON读取、完整annotation链/缺口分段、真实微秒时钟及旧窗口精确映射。真实运行和独立verify-only均通过：461目标/16010标注/608窗口，4处缺口形成465连续片段；未抽取canonical事件。源码09cbe1c，运行身份d8a904ed…664102；全套920测试通过，Ruff及公开检查通过。旧3A的228源码/217产物不变。详见[B0a验收报告](SCENARIO_TRACKS_B0A_RESULTS.md)。
 
 下一步依次为B0b原缓存1967目标扩展、B1真实时钟事件协议与抽取、episode级人审与指标，再考虑新训练。本轮没有新预测精度提升、holdout评测或GitHub推送。
+
+## Phase 3B / B0b全缓存装配完成（2026-11-16）
+
+在feature/scenario-tracks-full增加显式full_cache范围，从原fit/select缓存逐行确定目标与窗口，拒绝重复键和范围篡改。真实运行及独立verify-only通过：1967目标/60948标注/22231窗口，25处缺口形成1992连续片段，所有缓存窗口内部无缺口。B0a的461目标/16010标注/608窗口/465片段投影逐项一致，旧B0a与3A源码和产物均未改变。
+
+源码350d892，运行身份9c9324f3…17b21d8；新增5项测试，全套925通过（210.95秒），Ruff/公开检查通过。详见[B0b验收报告](SCENARIO_TRACKS_B0B_RESULTS.md)。当前下一步为B1真实时钟事件协议，仍未抽取canonical事件或计算新预测分数，不把全量数据覆盖当作全量模型评测。只本地提交，未推送GitHub。

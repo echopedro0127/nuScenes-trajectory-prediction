@@ -1,6 +1,6 @@
 # Phase 3B / B0：真实时钟、目标track与窗口映射设计
 
-日期：2026-11-16。状态：按用户“继续”指令推进已说明的B0a范围，详细实现计划先于代码。实际数据审计见[3B准备报告](../../SCENARIO_EVALUATION_3B_PREPARATION.md)。本设计仅覆盖B0装配，不把事件抽取、人工导入、合成场景及新训练混成一个开发任务。
+日期：2026-11-16。状态：B0a及[B0b全缓存扩展](../../SCENARIO_TRACKS_B0B_RESULTS.md)均已真实验收，独立verify-only通过。实际数据审计见[3B准备报告](../../SCENARIO_EVALUATION_3B_PREPARATION.md)。本设计仅覆盖B0装配，不把事件抽取、人工导入、合成场景及新训练混成一个开发任务。
 
 ## 目标与验收对象
 

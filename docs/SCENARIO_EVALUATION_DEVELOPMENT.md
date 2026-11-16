@@ -6,7 +6,9 @@
 
 2026-11-16：完成[3B准备审计](SCENARIO_EVALUATION_3B_PREPARATION.md)及独立可编辑复核资料；随后在新worktree完成[B0a真实时钟与track装配](SCENARIO_TRACKS_B0A_RESULTS.md)。461目标/16010标注/608窗口的真实运行与独立重建通过，920项测试通过。旧3A源码及产物保持不变。尚未抽取canonical episode或产生新预测分数；下一步先扩B0b目标范围，再冻结B1事件协议。
 
-本次依据[审查报告](SCENARIO_EVALUATION_REVIEW.md)R1–R9修订协议；修订只代表文档采纳，代码验收仍待执行。以下条款与执行计划共同构成拟冻结的`scenario_evaluation_v1`，首次正式成绩计算前绑定配置、源码与输入哈希。
+随后[B0b全缓存装配](SCENARIO_TRACKS_B0B_RESULTS.md)也已通过真实运行与独立重建：1967目标/60948标注/22231窗口，25处缺口形成1992连续片段（非episode），窗口内缺口为0。全套925项测试通过，B0a子集和旧冻结均不变。当前下一步为B1事件协议设计，仍未产生新预测分数或人工事件真值。
+
+本次依据[审查报告](SCENARIO_EVALUATION_REVIEW.md)R1–R9修订协议。以下条款记录3A开发时的协议与验收要求，实际完成状态以顶部状态及各阶段报告为准；3B的新事件协议另行冻结。
 
 ## 1. 为什么改变下一阶段的重点
 

@@ -27,27 +27,29 @@
 
 Files: `tests/evaluation/test_scenario_tracks.py`、`src/trajectory_prediction/evaluation/scenario_tracks.py`。
 
-- [ ] 先写夹具：每角色追加一个未进pilot的真实annotation链及缓存row；更新父绑定哈希而非绕过来源核验。
-- [ ] 加入full_cache构建/独立verify断言：4目标/68标注/4窗口而pilot仍为2目标；逐项覆盖新增row，标记pilot成员，ID与原子集一致。
-- [ ] 加入重复缓存键、错误scope、重算哈希篡改scope/schema被拒绝测试。执行RED并确认失败因为接口/功能未实现。
-- [ ] 实现`_full_cache_windows(cache_data, scene_by_name)`，从每行cache构造role/instance/sample/scene/log/row，拒绝重复键；全量targets直接取这些窗口。
-- [ ] `_load(..., scope='pilot')`校验scope，完整缓存模式验证pilot键及row为子集；`_derive`在全量模式保留旧ID核对并追加pilot成员标记。
-- [ ] `prepare_tracks(..., scope='pilot')`与CLI的`--scope {pilot,full_cache}`串联；binding/protocol/summary写独立scope与schema，verify按已保存且受支持的scope重新装配，拒绝未知策略。
-- [ ] 运行`pytest tests/evaluation/test_scenario_tracks.py tests/data/test_metadata_stream.py tests/analysis/test_track_timeline.py -q`并确认GREEN。
+- [x] 先写夹具：每角色追加一个未进pilot的真实annotation链及缓存row；更新父绑定哈希而非绕过来源核验。
+- [x] 加入full_cache构建/独立verify断言：4目标/68标注/4窗口而pilot仍为2目标；逐项覆盖新增row，标记pilot成员，ID与原子集一致。
+- [x] 加入重复缓存键、错误scope、重算哈希篡改scope/schema被拒绝测试。执行RED并确认失败因为接口/功能未实现。
+- [x] 实现`_full_cache_windows(cache_data, scene_by_name)`，从每行cache构造role/instance/sample/scene/log/row，拒绝重复键；全量targets直接取这些窗口。
+- [x] `_load(..., scope='pilot')`校验scope，完整缓存模式验证pilot键及row为子集；`_derive`在全量模式保留旧ID核对并追加pilot成员标记。
+- [x] `prepare_tracks(..., scope='pilot')`与CLI的`--scope {pilot,full_cache}`串联；binding/protocol/summary写独立scope与schema，verify按已保存且受支持的scope重新装配，拒绝未知策略。
+- [x] 运行`pytest tests/evaluation/test_scenario_tracks.py tests/data/test_metadata_stream.py tests/analysis/test_track_timeline.py -q`并确认GREEN。
 
 ## T3 验证与真实装配
 
-- [ ] 只读代码审查、Ruff、全套pytest与公开检查；验证通过后先本地提交源码。
-- [ ] 运行以下入口（PYTHONPATH=src，既有环境），产物不得覆盖：
+- [x] 只读代码审查、Ruff、全套pytest与公开检查；验证通过后先本地提交源码。
+- [x] 运行以下入口（PYTHONPATH=src，既有环境），产物不得覆盖：
 
 ```powershell
 python scripts/prepare_scenario_tracks.py --scope full_cache --parent ../scenario-evaluation/outputs/scenario-evaluation/phase3a-v1 --parent-owner ../scenario-evaluation --output-root outputs/scenario-tracks/b0b-v1
 python scripts/prepare_scenario_tracks.py --output-root outputs/scenario-tracks/b0b-v1 --verify-only
 ```
 
-- [ ] 检查实际计数、角色与类别、缺口和不可评价分母，单列全量窗口与pilot预测范围。比较旧B0a语义子集及其233源码/14产物，旧3A的228源码/217产物均不变。
-- [ ] 写结果报告并更新路线图，记录身份、真实测试和负面结果；只本地提交，不推送GitHub。
+- [x] 检查实际计数、角色与类别、缺口和不可评价分母，单列全量窗口与pilot预测范围。比较旧B0a语义子集及其233源码/14产物，旧3A的228源码/217产物均不变。
+- [x] 写结果报告并更新路线图，记录身份、真实测试和负面结果；只本地提交，不推送GitHub。
 
 ## 异常与失败策略
+
+验收记录：源码350d892；新增5项测试，定向63项及全套925项通过（210.95秒）。真实运行与独立重建均通过，1967目标/60948标注/22231窗口/25处缺口/1992连续片段，窗口内缺口为0。运行身份9c9324f34fdea1f1069d8e6dbb8e19626d8d1407978d7dbb8644bd15717b21d8；旧B0a子集及两旧owner冻结不变。见[结果报告](../../SCENARIO_TRACKS_B0B_RESULTS.md)。
 
 错误scope、重复窗口、跨角色instance/log、缺元数据、链损坏、缺anchor、坐标不一致、文件/来源变更和中断均不得签发完成标记。正常annotation缺口保留并分段；不从名义0.5秒构造实际时间。范围扩大后计数可能与预审不同，必须报告实际验证结果，不硬编码预期数字或放宽精确比较。
