@@ -12,6 +12,8 @@
 
 [B2a复核资料包](SCENARIO_EVENT_REVIEW_B2A_RESULTS.md)已生成并独立重建通过：1992块扫描＋347候选核对共2339任务，保留1767个未触发块及1077诊断，初始全部pending。离线查看器支持同源阅读CSV往返，阅读不等于GT；全套1011测试通过，Edge交互及真实页面显示通过。旧B1a/B0b/B0a/3A冻结不变。尚未导入人工事件标签，未实施新anchor／噪声协议或新预测指标。
 
+下一单元已写成[B2b1判决导入协议草案](superpowers/specs/2026-11-17-candidate-verdict-overlay-b2b1-design.md)：仅287个stop/restart原子候选填写独立判决，60个复合关系按组成派生，needs_correction不进入确认标签。设计已复审，尚待具体协议确认，未实现导入或产生人工判决；边界修正与新anchor／噪声协议分阶段进行。
+
 本次依据[审查报告](SCENARIO_EVALUATION_REVIEW.md)R1–R9修订协议。以下条款记录3A开发时的协议与验收要求，实际完成状态以顶部状态及各阶段报告为准；3B的新事件协议另行冻结。
 
 ## 1. 为什么改变下一阶段的重点
