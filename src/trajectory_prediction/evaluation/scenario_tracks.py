@@ -1,4 +1,4 @@
-"""B0a immutable real-clock tracks and existing-window mappings; no new scores."""
+"""B0 immutable real-clock tracks and cache-window mappings; no new scores."""
 import argparse
 import hashlib
 import json
@@ -24,6 +24,14 @@ from trajectory_prediction.utils.provenance import sha256_file
 PROJECT = Path(__file__).resolve().parents[3]
 ROLES = ('independent_fit', 'independent_select')
 TABLES = ('sample', 'sample_annotation', 'instance', 'scene', 'log', 'category')
+SCOPES = {'pilot': ('scenario_tracks_b0a_v1', 'phase3a_pilot_target_instances'),
+          'full_cache': ('scenario_tracks_b0b_v1', 'original_fit_select_cache_target_instances')}
+
+
+def _scope(scope):
+    if not isinstance(scope, str) or scope not in SCOPES:
+        raise ValueError('unsupported B0 scope policy')
+    return SCOPES[scope]
 
 
 def _write(path, value):
@@ -60,7 +68,23 @@ def _window_keys(parent):
     return [unique[k] for k in sorted(unique)]
 
 
-def _load(parent_info, metadata_root=None):
+def _full_cache_windows(cache_data, scene_by_name):
+    windows = {}
+    for role in ROLES:
+        data = cache_data[role]
+        for i, (instance, sample, scene_name) in enumerate(zip(
+                data['instance_token'], data['sample_token'], data['scene_name'], strict=True)):
+            key = role, str(instance), str(sample)
+            if key in windows:
+                raise ValueError('duplicate source cache window key')
+            scene = scene_by_name[str(scene_name)]
+            windows[key] = {'role': role, 'instance': str(instance), 'sample': str(sample),
+                            'scene': str(scene_name), 'log': scene['log_token'], 'row': i}
+    return [windows[k] for k in sorted(windows)]
+
+
+def _load(parent_info, metadata_root=None, scope='pilot'):
+    _scope(scope)
     refs = dict(parent_info['parent_references'])
     bound = {name: [(p, h) for p, h in refs.items() if Path(p).name == name + '.json']
              for name in ('sample', 'scene', 'log')}
@@ -122,6 +146,15 @@ def _load(parent_info, metadata_root=None):
         cache_data[role] = data
     if len(releases) != 1:
         raise ValueError('source dataset releases differ')
+    if scope == 'full_cache':
+        full_windows = _full_cache_windows(cache_data, scene_by_name)
+        full_lookup = {(w['role'], w['instance'], w['sample']): w for w in full_windows}
+        if any(full_lookup.get((w['role'], w['instance'], w['sample'])) != w for w in windows):
+            raise ValueError('pilot windows not a matching subset of source cache')
+        windows = full_windows
+        targets = {role: {w['instance'] for w in windows if w['role'] == role} for role in ROLES}
+        if any(not values for values in targets.values()):
+            raise ValueError('both nonempty development role scopes required')
     samples = _index(metadata / 'sample.json')
     instances = _index(metadata / 'instance.json', set().union(*targets.values()))
     categories = {t: r['name'] for t, r in _index(metadata / 'category.json').items()}
@@ -133,7 +166,7 @@ def _load(parent_info, metadata_root=None):
             annotations.append(row)
     release = next(iter(releases))
     timeline = build_tracks(annotations, samples, instances, scenes, categories, targets, role_logs, release)
-    return {'metadata_root': str(metadata), 'dataset_release': release, 'references': refs,
+    return {'scope': scope, 'metadata_root': str(metadata), 'dataset_release': release, 'references': refs,
             'cache_data': cache_data, 'windows': windows, 'parent_window_ids': parent_window_ids,
             'timeline': timeline, 'annotations_scanned': scanned}
 
@@ -201,25 +234,35 @@ def _derive(data):
             window_rows.append(sequence)
             contiguous = len({r['segment_id'] for r in sequence}) == 1
             window_id = hashlib.sha256(f"{role}:{window['instance']}:{window['sample']}".encode()).hexdigest()
-            if data['parent_window_ids'][role, window['instance'], window['sample']] != window_id:
+            old_id = data['parent_window_ids'].get((role, window['instance'], window['sample']))
+            if old_id is not None and old_id != window_id:
                 raise ValueError('parent window ID mismatch')
             metadata.append({**window, 'window_id': window_id, 'role_window_row': len(window_rows) - 1,
                              'anchor_annotation_token': anchor['token'], 'contiguous_annotation_segment': contiguous,
                              'status': 'ok' if contiguous else 'not_evaluable',
                              'reason': None if contiguous else 'source_annotation_gap'})
+            if data['scope'] == 'full_cache':
+                metadata[-1]['phase3a_pilot_member'] = old_id is not None
         times = np.array([[r['timestamp_us'] for r in seq] for seq in window_rows], np.int64)
         arrays[role + '-windows.npz'] = {
             'annotation_token': np.array([[r['token'] for r in seq] for seq in window_rows], 'U32'),
             'sample_token': np.array([[r['sample_token'] for r in seq] for seq in window_rows], 'U32'),
             'actual_timestamp_us': times, 'actual_offset_us': times - times[:, 4:5],
             'nominal_step': np.arange(-4, 13, dtype=np.int16)}
-    summary = {'status': 'tracks_and_clock_complete', 'scope': 'phase3a_pilot_target_instances',
+    summary = {'status': 'tracks_and_clock_complete', 'scope': _scope(data['scope'])[1],
                'target_instances': len(timeline['tracks']), 'annotation_rows': sum(len(t['annotations']) for t in timeline['tracks']),
                'window_count': len(windows), 'source_frame_gap_pairs': len(timeline['gaps']),
                'annotation_contiguous_segments': len(timeline['segments']),
                'annotations_scanned': data['annotations_scanned'], 'nominal_time_is_exact': False,
                'canonical_episodes_extracted': False, 'new_prediction_scores_computed': False,
                'neural_training': False, 'holdout_evaluated': False}
+    if data['scope'] == 'full_cache':
+        summary['phase3a_pilot_windows'] = len(data['parent_window_ids'])
+        summary['windows_with_annotation_gap'] = sum(w['status'] != 'ok' for w in metadata)
+        summary['role_coverage'] = {
+            role: {'target_instances': sum(t['role'] == role for t in track_index),
+                   'annotation_rows': sum(len(t['annotations']) for t in timeline['tracks'] if t['role'] == role),
+                   'windows': sum(w['role'] == role for w in metadata)} for role in ROLES}
     audit = {'cached_windows_exactly_rebuilt': len(metadata), 'annotation_chain_validated': True,
              'actual_timestamp_dtype': 'int64_us', 'world_coordinate_dtype': 'float64_m',
              'interpolated_or_filled_gt_points': 0, 'continuous_segments_are_not_episodes': True}
@@ -245,7 +288,8 @@ def _check(binding):
 
 
 def _binding(info, data, source_hashes):
-    return {'schema': 'scenario_tracks_b0a_v1', 'scope': 'phase3a_pilot_target_instances',
+    schema, scope = _scope(data['scope'])
+    return {'schema': schema, 'scope': scope,
             'parent': info['parent'], 'parent_owner': info['owner'], 'parent_identity': info['identity'],
             'metadata_root': data['metadata_root'], 'dataset_release': data['dataset_release'],
             'sources': source_hashes, 'references': data['references'],
@@ -253,27 +297,28 @@ def _binding(info, data, source_hashes):
             'neural_training': False, 'holdout_evaluated': False}
 
 
-def _protocol():
-    return {'scope': 'phase3a_pilot_target_instances', 'nominal_dt_s': .5, 'nominal_time_is_exact': False,
+def _protocol(scope='pilot'):
+    return {'scope': _scope(scope)[1], 'nominal_dt_s': .5, 'nominal_time_is_exact': False,
             'timestamp_unit': 'us', 'world_coordinate_frame': 'global_xy_m',
             'source_frame_gap_policy': 'split_annotation_segment_no_GT_fill',
             'canonical_episodes_extracted': False}
 
 
-def prepare_tracks(parent, parent_owner, output, metadata_root=None):
+def prepare_tracks(parent, parent_owner, output, metadata_root=None, scope='pilot'):
+    _scope(scope)
     output = Path(output).resolve()
     if output.exists():
-        raise FileExistsError('use a new B0a output directory')
+        raise FileExistsError('use a new B0 output directory')
     source_hashes = sources(PROJECT)
     info = parent_snapshot(parent, parent_owner)
     output.mkdir(parents=True, exist_ok=False)
     _write(output / 'progress.json', {'state': 'assembling'})
     try:
-        data = _load(info, metadata_root)
+        data = _load(info, metadata_root, scope)
         arrays, documents = _derive(data)
         binding = _binding(info, data, source_hashes)
         documents.update({'run.json': {'identity': digest(binding), 'binding': binding}, 'parent_proof.json': info['proof'],
-                          'protocol.json': _protocol()})
+                          'protocol.json': _protocol(scope)})
         hashes = {}
         for name, values in arrays.items():
             _save_npz(output / name, values)
@@ -299,7 +344,7 @@ def verify_tracks(output):
     output = Path(output).resolve()
     marker_path = output / 'completed.json'
     if not marker_path.is_file():
-        raise ValueError('incomplete B0a output')
+        raise ValueError('incomplete B0 output')
     marker_hash, marker = sha256_file(marker_path), read(marker_path)
     actual = {p.relative_to(output).as_posix() for p in output.rglob('*') if p.is_file()}
     if actual != set(marker['sha256']) | {'completed.json'}:
@@ -316,13 +361,15 @@ def verify_tracks(output):
     info = parent_snapshot(binding['parent'], binding['parent_owner'], proof)
     if info['identity'] != binding['parent_identity']:
         raise ValueError('B0 parent identity changed')
-    data = _load(info, binding['metadata_root'])
+    scope = next((key for key, (_, value) in SCOPES.items() if value == binding['scope']), None)
+    _scope(scope)
+    data = _load(info, binding['metadata_root'], scope)
     if data['references'] != binding['references'] or data['dataset_release'] != binding['dataset_release']:
         raise ValueError('B0 source snapshot mismatch')
     if binding != _binding(info, data, sources(PROJECT)):
         raise ValueError('B0 run policy/runtime replay mismatch')
     arrays, documents = _derive(data)
-    documents['protocol.json'] = _protocol()
+    documents['protocol.json'] = _protocol(scope)
     if set(marker['sha256']) != set(arrays) | set(documents) | {'run.json', 'parent_proof.json', 'progress.json'}:
         raise ValueError('B0 expected file coverage mismatch')
     for name, value in arrays.items():
@@ -348,9 +395,11 @@ def main():
     parser.add_argument('--metadata-root', type=Path)
     parser.add_argument('--output-root', type=Path, required=True)
     parser.add_argument('--verify-only', action='store_true')
+    parser.add_argument('--scope', choices=tuple(SCOPES), default='pilot',
+                        help='assembly target scope; verify-only reads the saved scope')
     args = parser.parse_args()
     if not args.verify_only and (args.parent is None or args.parent_owner is None):
         parser.error('--parent and --parent-owner required')
     result = (verify_tracks(args.output_root) if args.verify_only else
-              prepare_tracks(args.parent, args.parent_owner, args.output_root, args.metadata_root))
+              prepare_tracks(args.parent, args.parent_owner, args.output_root, args.metadata_root, args.scope))
     print(json.dumps(result, indent=2, allow_nan=False), flush=True)

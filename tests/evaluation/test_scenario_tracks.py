@@ -182,3 +182,102 @@ def test_stray_nested_file_blocks_completion(track_parent, tmp_path, monkeypatch
     with pytest.raises(ValueError, match='coverage'):
         tracks.prepare_tracks(parent, owner, output, metadata_root=metadata)
     assert not (output / 'completed.json').exists()
+
+
+def expand_target_cache(track_parent, defect=None):
+    parent, owner, metadata = track_parent
+    cache = metadata.parent / 'cache'
+    annotations = json.loads((metadata / 'sample_annotation.json').read_text())
+    instances = json.loads((metadata / 'instance.json').read_text())
+    for role in tracks.ROLES:
+        original = [a for a in annotations if a['instance_token'] == 'i-' + role]
+        for prefix in ('new', 'decoy'):
+            instance = prefix + '-' + role
+            copied = []
+            for a in original:
+                copied.append({**a, 'token': prefix + a['token'], 'instance_token': instance,
+                               'prev': prefix + a['prev'] if a['prev'] else '',
+                               'next': prefix + a['next'] if a['next'] else '',
+                               'translation': [a['translation'][0] + 10., 0., 0.]})
+            annotations.extend(copied)
+            instances.append({'token': instance, 'category_token': 'cat', 'nbr_annotations': 17,
+                              'first_annotation_token': copied[0]['token'], 'last_annotation_token': copied[-1]['token']})
+        archive = cache / role / 'gt.npz'
+        with np.load(archive, allow_pickle=False) as z:
+            arrays = {n: np.concatenate([z[n], z[n]], axis=0) for n in z.files}
+        arrays['instance_token'] = np.array(['i-' + role, 'new-' + role])
+        arrays['anchor_xy'][1] += np.array([10., 0.], np.float32)
+        if defect == 'duplicate_key' and role == 'independent_fit':
+            arrays['instance_token'][1] = arrays['instance_token'][0]
+        if defect == 'role_overlap' and role == 'independent_select':
+            arrays['instance_token'][1] = 'new-independent_fit'
+        np.savez_compressed(archive, **arrays)
+        manifest_path = archive.parent / 'manifest.json'
+        manifest = json.loads(manifest_path.read_text())
+        manifest['npz_sha256'] = sha256_file(archive)
+        write(manifest_path, manifest)
+    write(metadata / 'sample_annotation.json', annotations)
+    write(metadata / 'instance.json', instances)
+    preflight = metadata.parent / 'preflight'
+    ready = json.loads((preflight / 'run.json').read_text())
+    for ref in ready['binding']['references'].values():
+        ref['sha256'] = sha256_file(ref['path'])
+    ready['identity'] = digest(ready['binding'])
+    write(preflight / 'run.json', ready)
+    seal(preflight, ready['identity'], 'preflight_completed.json')
+    return parent, owner, metadata
+
+
+def test_full_cache_scope_covers_new_targets_without_decoy_objects(track_parent, tmp_path):
+    parent, owner, metadata = expand_target_cache(track_parent)
+    pilot, full = tmp_path / 'pilot', tmp_path / 'full'
+    assert tracks.prepare_tracks(parent, owner, pilot, metadata_root=metadata)['target_instances'] == 2
+    result = tracks.prepare_tracks(parent, owner, full, metadata_root=metadata, scope='full_cache')
+    assert result['scope'] == 'original_fit_select_cache_target_instances'
+    assert result['target_instances'] == 4
+    assert result['annotation_rows'] == 68
+    assert result['window_count'] == 4
+    assert tracks.verify_tracks(full)['track_and_window_replayed'] is True
+    old_tracks = json.loads((pilot / 'tracks.json').read_text())
+    new_tracks = json.loads((full / 'tracks.json').read_text())
+    for old in old_tracks:
+        new = next(t for t in new_tracks if (t['role'], t['instance']) == (old['role'], old['instance']))
+        assert new['semantic_sha256'] == old['semantic_sha256']
+    windows = json.loads((full / 'windows.json').read_text())
+    assert sum(w['phase3a_pilot_member'] for w in windows) == 2
+    assert {w['row'] for w in windows} == {0, 1}
+    assert not any('decoy' in w['instance'] for w in windows)
+
+
+@pytest.mark.parametrize('defect', ['duplicate_key', 'role_overlap'])
+def test_full_cache_invalid_scope_membership_rejected(track_parent, tmp_path, defect):
+    parent, owner, metadata = expand_target_cache(track_parent, defect)
+    output = tmp_path / 'invalid'
+    with pytest.raises(ValueError, match='duplicate|role|overlap'):
+        tracks.prepare_tracks(parent, owner, output, metadata_root=metadata, scope='full_cache')
+    assert not (output / 'completed.json').exists()
+
+
+def test_unknown_scope_is_rejected_before_parent_replay(track_parent, tmp_path, monkeypatch):
+    parent, owner, metadata = track_parent
+    def unexpected(*args, **kwargs):
+        pytest.fail('unknown scope must be rejected before parent replay')
+    monkeypatch.setattr(tracks, 'parent_snapshot', unexpected)
+    with pytest.raises(ValueError, match='scope'):
+        tracks.prepare_tracks(parent, owner, tmp_path / 'unknown', metadata_root=metadata, scope='all_objects')
+
+
+def test_full_cache_scope_tamper_rejected_after_rehash(track_parent, tmp_path):
+    parent, owner, metadata = expand_target_cache(track_parent)
+    output = tmp_path / 'full'
+    tracks.prepare_tracks(parent, owner, output, metadata_root=metadata, scope='full_cache')
+    run = json.loads((output / 'run.json').read_text())
+    run['binding']['scope'] = 'phase3a_pilot_target_instances'
+    run['identity'] = digest(run['binding'])
+    write(output / 'run.json', run)
+    marker = json.loads((output / 'completed.json').read_text())
+    marker['identity'] = run['identity']
+    marker['sha256']['run.json'] = sha256_file(output / 'run.json')
+    write(output / 'completed.json', marker)
+    with pytest.raises(ValueError, match='policy|scope|replay'):
+        tracks.verify_tracks(output)
