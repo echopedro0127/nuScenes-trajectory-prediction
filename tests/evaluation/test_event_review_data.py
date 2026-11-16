@@ -100,3 +100,28 @@ def test_invalid_working_sheet_rejected(review_fixture,kind):
         parsed=list(csv.reader(io.StringIO(text)));parsed[0].append('extra')
         out=io.StringIO();csv.writer(out).writerows(parsed);text=out.getvalue()
     with pytest.raises(ValueError): validate_working(text,baseline)
+
+
+@pytest.mark.parametrize('blank',['\u0085','\ufeff'])
+def test_invisible_only_reviewer_rejected(review_fixture,blank):
+    from trajectory_prediction.evaluation.event_review_data import assemble_review, validate_working
+    baseline=assemble_review(*review_fixture)['queue'];rows=[dict(r) for r in baseline]
+    rows[0].update(review_status='reviewed',reviewer=blank,notes='read')
+    with pytest.raises(ValueError):validate_working(working(rows),baseline)
+
+
+def test_unclosed_csv_quote_rejected(review_fixture):
+    from trajectory_prediction.evaluation.event_review_data import assemble_review, validate_working
+    baseline=assemble_review(*review_fixture)['queue']
+    text=working(baseline).rstrip('\r\n')+'"unterminated'
+    with pytest.raises(ValueError):validate_working(text,baseline)
+
+
+@pytest.mark.parametrize('size,valid',[(8192,True),(8193,False),(131073,False)])
+def test_shared_unicode_cell_limit(review_fixture,size,valid):
+    from trajectory_prediction.evaluation.event_review_data import assemble_review, validate_working
+    baseline=assemble_review(*review_fixture)['queue'];rows=[dict(r) for r in baseline]
+    rows[0].update(review_status='reviewed',reviewer='reader',notes=chr(0x1f697)*size)
+    if valid: assert validate_working(working(rows),baseline)['reviewed']==1
+    else:
+        with pytest.raises(ValueError):validate_working(working(rows),baseline)

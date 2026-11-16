@@ -1,12 +1,27 @@
 """Self-contained offline GT viewer; editable notes never become event truth."""
 import json
 
-from trajectory_prediction.evaluation.event_review_data import COLUMNS, LOCKED
+from trajectory_prediction.evaluation.event_review_data import (
+    COLUMNS,
+    LOCKED,
+    MAX_CELL_CODEPOINTS,
+    REVIEW_WHITESPACE,
+)
 
 
 def script_source():
     header = 'const COLUMNS='+json.dumps(COLUMNS)+'; const LOCKED='+json.dumps(LOCKED)+';\n'
+    header += 'const REVIEW_WHITESPACE='+json.dumps(REVIEW_WHITESPACE)+';\n'
+    header += 'const MAX_CELL_CODEPOINTS='+str(MAX_CELL_CODEPOINTS)+';\n'
     return header+r'''
+function hasText(value){return Array.from(value).some(c=>!REVIEW_WHITESPACE.includes(c));}
+function plotBounds(points,equalAspect){
+ const xs=points.map(p=>p[0]),ys=points.map(p=>p[1]);
+ let x0=Math.min(0,...xs),x1=Math.max(1,...xs),y0=Math.min(0,...ys),y1=Math.max(1,...ys);
+ if(equalAspect){const unit=Math.max((x1-x0)/540,(y1-y0)/185),cx=(x0+x1)/2,cy=(y0+y1)/2;
+  x0=cx-unit*270;x1=cx+unit*270;y0=cy-unit*92.5;y1=cy+unit*92.5;}
+ return {x0,x1,y0,y1};
+}
 function csvText(rows){
  const esc=v=>/[",\r\n]/.test(v)?'"'+v.replaceAll('"','""')+'"':v;
  return [COLUMNS,...rows.map(r=>COLUMNS.map(k=>r[k]))].map(r=>r.map(esc).join(',')).join('\r\n')+'\r\n';
@@ -34,7 +49,8 @@ function validateRows(matrix,baseline){
   const r=Object.fromEntries(COLUMNS.map((k,i)=>[k,cells[i]])),b=byId.get(r.task_id);
   if(!b||seen.has(r.task_id)||LOCKED.some(k=>r[k]!==b[k]))throw Error('任务来源或锁定字段不匹配');
   if(!['pending','in_progress','reviewed'].includes(r.review_status))throw Error('未知阅读状态');
-  if(r.review_status==='reviewed'&&(!r.reviewer.trim()||!r.notes.trim()))throw Error('已阅读须填写复核人和备注');
+  if(Object.values(r).some(v=>Array.from(v).length>MAX_CELL_CODEPOINTS))throw Error('单元格超过8192个Unicode字符');
+  if(r.review_status==='reviewed'&&(!hasText(r.reviewer)||!hasText(r.notes)))throw Error('已阅读须填写复核人和备注');
   seen.add(r.task_id);out.push(r);
  }
  if(seen.size!==baseline.length)throw Error('工作表缺少任务');return out;
@@ -45,22 +61,22 @@ function boot(){
  const diagnostics=new Map(data.diagnostics.map(d=>[d.diagnostic_id,d]));
  let working=new Map(data.queue.map(r=>[r.task_id,{...r}])),current=null;
  const el=(tag,attrs={},text=null)=>{const e=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const[k,v]of Object.entries(attrs))e.setAttribute(k,v);if(text!==null)e.textContent=text;return e;};
- function save(){if(current){const r=working.get(current);r.review_status=$('status').value;r.reviewer=$('reviewer').value;r.notes=$('notes').value;}}
+ function save(){if(current&&working.has(current)){const r=working.get(current);r.review_status=$('status').value;r.reviewer=$('reviewer').value;r.notes=$('notes').value;}}
  function message(text){$('message').textContent=text;}
- function plot(id,points,xlabel,ylabel,boundaries=[]){
-  const svg=$(id);svg.replaceChildren();let xs=points.map(p=>p[0]),ys=points.map(p=>p[1]);
-  let x0=Math.min(0,...xs),x1=Math.max(1,...xs),y0=Math.min(0,...ys),y1=Math.max(1,...ys);
+ function plot(id,points,xlabel,ylabel,boundaries=[],equalAspect=false){
+  const svg=$(id);svg.replaceChildren();const {x0,x1,y0,y1}=plotBounds(points,equalAspect);
   const X=x=>55+540*(x-x0)/(x1-x0),Y=y=>220-185*(y-y0)/(y1-y0);
   svg.append(el('path',{d:'M55 20V220H610',fill:'none',stroke:'#64748b'}));
   svg.append(el('polyline',{points:points.map(p=>X(p[0])+','+Y(p[1])).join(' '),fill:'none',stroke:'#2563eb','stroke-width':2}));
   for(const p of points)svg.append(el('circle',{cx:X(p[0]),cy:Y(p[1]),r:2.2,fill:'#2563eb'}));
-  for(const b of boundaries){if(b.x<x0||b.x>x1)continue;svg.append(el('line',{x1:X(b.x),x2:X(b.x),y1:20,y2:220,stroke:b.color,'stroke-dasharray':'5 4'}));svg.append(el('text',{x:X(b.x)+3,y:30+b.level*15,fill:b.color,'font-size':11},b.label));}
+  for(const b of boundaries){if(b.x<x0||b.x>x1)continue;svg.append(el('line',{x1:X(b.x),x2:X(b.x),y1:20,y2:220,stroke:b.color,'stroke-dasharray':'5 4'}));const right=X(b.x)>500;svg.append(el('text',{x:X(b.x)+(right?-4:3),y:30+b.level*15,fill:b.color,'font-size':11,'text-anchor':right?'end':'start'},b.label));}
   svg.append(el('text',{x:290,y:250,'font-size':12},xlabel));svg.append(el('text',{x:8,y:15,'font-size':12},ylabel));
   svg.append(el('text',{x:56,y:235,'font-size':10},x0.toFixed(2)));svg.append(el('text',{x:575,y:235,'font-size':10},x1.toFixed(2)));
   svg.append(el('text',{x:5,y:45,'font-size':10},y1.toFixed(2)));svg.append(el('text',{x:5,y:217,'font-size':10},y0.toFixed(2)));
  }
  function render(id){
   save();current=id;const task=working.get(id);if(!task)return;
+  for(const k of ['status','reviewer','notes'])$(k).disabled=false;
   const block=blocks.get(task.block_id),event=events.get(task.event_id);
   $('status').value=task.review_status;$('reviewer').value=task.reviewer;$('notes').value=task.notes;
   $('heading').textContent=task.task_kind==='event_check'?'候选事件核对':task.task_kind==='block_scan'?'完整分析块扫描':'不可评价区间检查';
@@ -72,21 +88,26 @@ function boot(){
   const links=event?data.window_links.filter(r=>r.event_id===event.event_id):[];
   $('coverage').textContent=event?`已有窗口关联 ${links.length} 条，其中pilot ${links.filter(r=>r.phase3a_pilot_member).length} 条。关联不代表新增预测。`:'本任务包含完整GT上下文；无候选不等于人工阴性。';
   if(block){const xy=block.xy,base=xy[0],t0=block.time_us[0];
-   plot('trajectory',xy.map(p=>[p[0]-base[0],p[1]-base[1]]),'相对首点 ΔX (m)','ΔY (m)');
+   plot('trajectory',xy.map(p=>[p[0]-base[0],p[1]-base[1]]),'相对首点 ΔX (m)','ΔY (m)',[],true);
    const speed=[];for(let i=0;i<block.speed_mps.length;i++){speed.push([(block.time_us[i]-t0)/1e6,block.speed_mps[i]],[(block.time_us[i+1]-t0)/1e6,block.speed_mps[i]]);}
    const boundary=event?[{x:(event.onset_us-t0)/1e6,color:'#dc2626',label:'onset',level:0},
     {x:(event.confirmation_us-t0)/1e6,color:'#047857',label:'confirmation',level:1},
     {x:(event.end_us-t0)/1e6,color:'#7c3aed',label:event.right_censored?'end（右删失）':'end',level:2}]:[];
-   plot('speed',speed.length?speed:[[0,0]],'相对分析块起点 t (s)','原始区间速度 (m/s)',boundary);
-   $('source').textContent=`${xy.length} 个原始GT点；世界坐标首点 (${base[0].toFixed(3)}, ${base[1].toFixed(3)}) m。${speed.length?'':'单点，无有效速度区间；图中零点仅占位。'}`;
+   if(speed.length)plot('speed',speed,'相对分析块起点 t (s)','原始区间速度 (m/s)',boundary);
+   else{$('speed').replaceChildren(el('text',{x:130,y:125,'font-size':18,fill:'#64748b'},'单点：无有效速度区间'));}
+   $('source').textContent=`${xy.length} 个原始GT点；世界坐标首点 (${base[0].toFixed(3)}, ${base[1].toFixed(3)}) m。${speed.length?'':'单点，无有效速度区间。'}`;
   }else{$('trajectory').replaceChildren();$('speed').replaceChildren();$('source').textContent='此诊断位于分析块边界，未虚构轨迹上下文。';}
-  document.body.dataset.reviewReady='true';document.body.dataset.selectedTask=id;
+  document.body.dataset.reviewReady='true';document.body.dataset.selectedTask=id;document.body.dataset.noMatches='false';
  }
  function list(){save();const role=$('role-filter').value,kind=$('kind-filter').value,q=$('search').value.toLowerCase();
   const rows=data.queue.filter(r=>(!role||r.role===role)&&(!kind||r.task_kind===kind)&&[r.task_id,r.instance,r.event_id,r.block_id].join(' ').toLowerCase().includes(q));
   $('tasks').replaceChildren();for(const r of rows){const o=document.createElement('option');o.value=r.task_id;o.textContent=(r.task_kind==='event_check'?'事件':'块扫描')+' · '+r.instance.slice(0,10)+(r.event_id?' · '+events.get(r.event_id).event_type:'');$('tasks').append(o);}
   $('count').textContent=`筛选 ${rows.length} / ${data.queue.length} 条任务；不代表独立事件数量`;
-  const wanted=rows.find(r=>r.task_id===current)||rows[0];if(wanted){$('tasks').value=wanted.task_id;render(wanted.task_id);}
+  const wanted=rows.find(r=>r.task_id===current)||rows[0];$('tasks').disabled=!wanted;
+  if(wanted){$('tasks').value=wanted.task_id;render(wanted.task_id);}
+  else{current=null;for(const k of ['status','reviewer','notes']){$(k).disabled=true;$(k).value=k==='status'?'pending':'';}
+   $('heading').textContent='无匹配任务';for(const k of ['identity','source','coverage','context'])$(k).textContent='';
+   $('trajectory').replaceChildren();$('speed').replaceChildren();document.body.dataset.noMatches='true';document.body.dataset.selectedTask='';}
  }
  $('tasks').addEventListener('change',()=>render($('tasks').value));
  for(const id of ['role-filter','kind-filter','search'])$(id).addEventListener('input',list);
@@ -96,9 +117,9 @@ function boot(){
  $('import-working').addEventListener('change',async ev=>{try{const file=ev.target.files[0];if(!file)return;
   const rows=validateRows(parseCsv(await file.text()),data.queue);working=new Map(rows.map(r=>[r.task_id,r]));current=null;list();message('已加载同源阅读记录；静态GT与规则候选未改变。');}catch(e){message('导入拒绝：'+e.message);}finally{ev.target.value='';}});
  $('totals').textContent=`${data.summary.block_scan_tasks} 个分析块 · ${data.summary.event_check_tasks} 条候选记录（含复合配对） · ${data.summary.diagnostic_rows} 条诊断`;
- current=decodeURIComponent(location.hash.slice(1));list();
+ try{current=decodeURIComponent(location.hash.slice(1));}catch(e){current=null;}list();
 }
-if(typeof module!=='undefined'&&module.exports)module.exports={csvText,parseCsv,validateRows};else boot();
+if(typeof module!=='undefined'&&module.exports)module.exports={csvText,parseCsv,validateRows,plotBounds};else boot();
 '''
 
 

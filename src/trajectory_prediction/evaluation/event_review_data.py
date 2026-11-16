@@ -14,6 +14,9 @@ LOCKED = ('task_id','task_kind','role','instance','block_id','event_id','diagnos
 EDITABLE = ('review_status','reviewer','notes')
 COLUMNS = (*LOCKED, *EDITABLE)
 STATUSES = ('pending','in_progress','reviewed')
+MAX_CELL_CODEPOINTS = 8192
+REVIEW_WHITESPACE = ''.join(map(chr,[9,10,11,12,13,28,29,30,31,32,133,160,5760,
+                                    *range(8192,8203),8232,8233,8239,8287,12288,65279]))
 
 
 def csv_text(rows):
@@ -24,14 +27,18 @@ def csv_text(rows):
 
 
 def validate_working(text, baseline):
-    reader = csv.DictReader(io.StringIO(text.lstrip('\ufeff'), newline=''))
+    reader = csv.DictReader(io.StringIO(text.lstrip('\ufeff'), newline=''), strict=True)
+    try:
+        rows = list(reader)
+    except csv.Error as error:
+        raise ValueError('malformed working CSV') from error
     if reader.fieldnames != list(COLUMNS):
         raise ValueError('working CSV columns mismatch')
     expected = {r['task_id']:r for r in baseline}
     if len(expected) != len(baseline):
         raise ValueError('duplicate baseline task')
     seen, counts = set(), Counter()
-    for row in reader:
+    for row in rows:
         key = row.get('task_id')
         if (set(row) != set(COLUMNS) or any(v is None for v in row.values())
                 or key not in expected or key in seen
@@ -39,7 +46,10 @@ def validate_working(text, baseline):
             raise ValueError('working CSV task identity/coverage changed')
         if row['review_status'] not in STATUSES:
             raise ValueError('unknown working review status')
-        if row['review_status'] == 'reviewed' and (not row['reviewer'].strip() or not row['notes'].strip()):
+        if any(len(value) > MAX_CELL_CODEPOINTS for value in row.values()):
+            raise ValueError('working CSV cell exceeds 8192 Unicode code points')
+        if row['review_status'] == 'reviewed' and (not row['reviewer'].strip(REVIEW_WHITESPACE)
+                                                 or not row['notes'].strip(REVIEW_WHITESPACE)):
             raise ValueError('reviewed reading record needs reviewer and notes')
         seen.add(key); counts[row['review_status']] += 1
     if seen != set(expected):

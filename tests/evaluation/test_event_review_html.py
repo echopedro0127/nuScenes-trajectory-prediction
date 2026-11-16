@@ -35,11 +35,16 @@ const d=JSON.parse(fs.readFileSync(0,'utf8')),rows=d.baseline.map(r=>({...r}));
 a.equal(m.csvText(rows),d.csv);
 rows.reverse();rows[0].review_status='reviewed';rows[0].reviewer='reader';rows[0].notes='comma, quote "\\nand newline';
 let csv=m.csvText(rows);a.deepEqual(m.validateRows(m.parseCsv('\\ufeff'+csv),d.baseline),rows);
-for(const change of [r=>r.instance='wrong',r=>r.review_status='confirmed',r=>{r.review_status='reviewed';r.reviewer='';}]){
+for(const change of [r=>r.instance='wrong',r=>r.review_status='confirmed',r=>{r.review_status='reviewed';r.reviewer='';},r=>r.reviewer='\\u0085',r=>r.reviewer='\\ufeff']){
  const bad=rows.map(r=>({...r}));change(bad[0]);a.throws(()=>m.validateRows(m.parseCsv(m.csvText(bad)),d.baseline));
 }
 a.throws(()=>m.parseCsv('"unterminated'));
 a.throws(()=>m.validateRows(m.parseCsv(m.csvText(rows.slice(1))),d.baseline));
+const bounds=m.plotBounds([[0,0],[100,1]],true);
+a.ok(Math.abs((bounds.x1-bounds.x0)/540-(bounds.y1-bounds.y0)/185)<1e-12);
+const long=rows.map(r=>({...r}));long[0].notes=String.fromCodePoint(0x1f697).repeat(8192);
+a.equal(m.validateRows(m.parseCsv(m.csvText(long)),d.baseline)[0].notes.length,16384);
+long[0].notes+=String.fromCodePoint(0x1f697);a.throws(()=>m.validateRows(m.parseCsv(m.csvText(long)),d.baseline));
 console.log('Node CSV roundtrip and identity checks passed');
 """
     result=subprocess.run([node,'-e',command,str(path)],input=json.dumps({'baseline':baseline,'csv':csv_text(baseline)}),
