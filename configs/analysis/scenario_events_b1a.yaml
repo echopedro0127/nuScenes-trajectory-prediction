@@ -1,0 +1,8 @@
+rule_version: stop_restart_realclock_v1
+stop_speed_mps: 0.3
+restart_speed_mps: 1.0
+prior_history_us: 2000000
+stop_dwell_us: 1000000
+restart_dwell_us: 1000000
+minimum_dwell_intervals: 2
+max_interval_us: 1000000
