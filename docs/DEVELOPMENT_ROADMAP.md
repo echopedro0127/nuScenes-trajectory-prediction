@@ -750,3 +750,11 @@ RH−CV ADE差−0.105097m，配对log bootstrap95%区间[−0.128439,−0.07484
 新指标揭示权衡而非全面提升：select固定1秒lead下Plus CA较Baseline7在noise_05改善2.350%，clean恶化3.617%；恢复AUC恶化4.207%，恢复率下降2.896个百分点。Raw CV/hold_position的高恢复率不能替代绝对误差。详见[正式结果](SCENARIO_EVALUATION_PHASE3A_RESULTS.md)。
 
 下一步先人工复核与3B episode去重协议，再冻结新训练假设；不拿历史holdout调参。此阶段只本地提交，未推送GitHub，V1 holdout成绩不被替换。
+
+## Phase 3B 准备审计与B0设计（2026-11-16）
+
+只读分块扫描1166187条annotation；对既有461目标完整track的16010条标注验证链与时间，608窗口坐标精确匹配缓存。发现4处annotation跨sample缺口，465连续片段不等于驾驶episode。3A名义两步lead实际跨度0.799584–1.150706秒，已追加解释，不改旧分数。
+
+准备75条pending人工工作表和62张GT图，独立于冻结产物；69个静态文件和12个数据引用核验通过。原3A的217个产物及228个冻结源码未变。完整元数据已有，无需下载新数据。
+
+首个B0子项目设计先pilot真实时钟/track/窗口映射，再扩至原缓存1967目标；代码需新worktree保护3A冻结。设计待审阅，尚未抽取canonical事件、计算新预测分数或训练。见[准备报告](SCENARIO_EVALUATION_3B_PREPARATION.md)及其中B0设计。

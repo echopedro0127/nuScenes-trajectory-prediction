@@ -4,6 +4,8 @@
 
 **状态：S0–S7正式评测已完成，单独verify-only通过。** 608窗口/5472流/16策略/41案例，完整结果及负结果见[Phase 3A报告](SCENARIO_EVALUATION_PHASE3A_RESULTS.md)，协议见[S7](SCENARIO_EVALUATION_S7_PROTOCOL.md)。S4d人工复核仍pending；规则标签不是人工真值，本轮不训练、不评价holdout，不包装为全面模型提升。
 
+2026-11-16：完成[3B准备审计](SCENARIO_EVALUATION_3B_PREPARATION.md)及独立可编辑复核资料。发现实际时间不严格等于名义0.5秒，已给3A文档追加解释而不改变旧分数。新B0设计待审阅，尚未实现track产品代码、canonical episode或新评分；后续必须在新worktree开发以保持3A冻结。
+
 本次依据[审查报告](SCENARIO_EVALUATION_REVIEW.md)R1–R9修订协议；修订只代表文档采纳，代码验收仍待执行。以下条款与执行计划共同构成拟冻结的`scenario_evaluation_v1`，首次正式成绩计算前绑定配置、源码与输入哈希。
 
 ## 1. 为什么改变下一阶段的重点
