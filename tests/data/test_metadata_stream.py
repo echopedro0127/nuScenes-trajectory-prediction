@@ -46,3 +46,12 @@ def test_can_stop_without_consuming_later_invalid_record(tmp_path):
     rows = iter_json_objects(path, chunk_size=1)
     assert next(rows) == {'token': 'first'}
     rows.close()
+
+
+@pytest.mark.parametrize('text', ['[\u00a0{}]', '[{}\v]', '[{}]\u0085'])
+@pytest.mark.parametrize('chunk_size', [1, 7])
+def test_only_json_whitespace_is_accepted(tmp_path, text, chunk_size):
+    path = tmp_path / 'illegal-space.json'
+    path.write_text(text, encoding='utf-8')
+    with pytest.raises(ValueError):
+        list(iter_json_objects(path, chunk_size=chunk_size))

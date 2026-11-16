@@ -64,6 +64,9 @@ python scripts/prepare_scenario_tracks.py --output-root outputs/scenario-tracks/
 
 ## T4 实际验收与交付
 
+2026-11-16执行检查点：T1–T3代码及夹具已实现，58项定向测试通过（9.60秒），Ruff及diff检查通过；独立只读复审未发现Critical/Important问题。全套回归正在运行，真实B0a装配和独立verify-only尚未执行，因此当前不声明数据验收完成。
+
+
 - [ ] 单元/夹具通过后做只读代码审查，修复必须项再跑全套pytest、Ruff、公开扫描和diff检查；源码先本地提交。
 - [ ] 运行真实B0a并独立verify-only，核对461 tracks/16010 annotations/608窗口/4缺口，465连续片段不得称episode。显示名义/实际时钟区别，不修改3A分数。
 - [ ] 验证旧owner的228个源文件及217个产物不变；报告真实计数和输入/输出身份，更新文档，本地提交，不推送。

@@ -44,7 +44,7 @@ def iter_json_objects(path, chunk_size=1048576, max_record_chars=1048576):
         def peek():
             nonlocal index
             while True:
-                while index < len(buffer) and buffer[index].isspace():
+                while index < len(buffer) and buffer[index] in ' \t\r\n':
                     index += 1
                 if index < len(buffer):
                     return buffer[index]
