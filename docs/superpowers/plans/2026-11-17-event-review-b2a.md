@@ -23,43 +23,45 @@ HTML可编辑本次会话工作表并下载CSV；不会自动写本机文件。�
 ## T1 新worktree与基线
 
 - [x] 从880292c新建feature/scenario-event-review，工作区.worktrees/scenario-event-review，旧B1a只读。
-- [ ] 创建outputs并运行既有55项B1a定向基线；复用原环境。
+- [x] 创建outputs并运行既有55项B1a定向基线；复用原环境。
 
 ## T2 索引与工作表
 
 Files: `evaluation/event_review_data.py`, `tests/evaluation/test_event_review_data.py`。
 
-- [ ] 先写RED：完整任务守恒、事件／诊断外键、无候选block、单点、错误GT来源、原coverage不变。
-- [ ] 实现`assemble_review(parent, references)`：通过父run显式B0b路径读取绑定数组，不猜owner层级；按block端点token提取原始XY／时间，关联已有事件／诊断／窗口索引。
-- [ ] 实现CSV生成及`validate_working(text, baseline)`，只允许三列编辑，拒绝错列／重复／漏行／锁定字段篡改，允许排序、带引号多行notes。
-- [ ] GREEN后提交。
+- [x] 先写RED：完整任务守恒、事件／诊断外键、无候选block、单点、错误GT来源、原coverage不变。
+- [x] 实现`assemble_review(parent, references)`：通过父run显式B0b路径读取绑定数组，不猜owner层级；按block端点token提取原始XY／时间，关联已有事件／诊断／窗口索引。
+- [x] 实现CSV生成及`validate_working(text, baseline)`，只允许三列编辑，拒绝错列／重复／漏行／锁定字段篡改，允许排序、带引号多行notes。
+- [x] GREEN后提交。
 
 ## T3 离线查看器
 
 Files: `evaluation/event_review_html.py`, `tests/evaluation/test_event_review_html.py`。
 
-- [ ] RED：自包含、安全JSON嵌入、角色／任务筛选、source ID定位、GT与规则边界、原覆盖、CSV导出和导入验证。
-- [ ] 原生SVG实现按需渲染，XY用首点平移显示但保留world数据；速度使用原始真实dt；通过文本节点显示源字段与人工notes。
-- [ ] 不引入网络资源，不自动打开可见浏览器；本地可用的Node／Edge用于语法和无头渲染核验，无则报告验证限制。
+- [x] RED：自包含、安全JSON嵌入、角色／任务筛选、source ID定位、GT与规则边界、原覆盖、CSV导出和导入验证。
+- [x] 原生SVG实现按需渲染，XY用首点平移显示但保留world数据；速度使用原始真实dt；通过文本节点显示源字段与人工notes。
+- [x] 不引入网络资源，不自动打开可见浏览器；本地可用的Node／Edge用于语法和无头渲染核验，无则报告验证限制。
 
 ## T4 父证明、发布与独立验证
 
 Files: `evaluation/review_sources.py`, `evaluation/event_review.py`, `scripts/prepare_event_review.py`, `tests/evaluation/test_event_review_pipeline.py`。
 
-- [ ] 先RED：显式owner、B1a原生证明（两条stage JSON＋结果JSON）、构建→独立重建、静态篡改重哈希、工作表允许修改／拒绝任务篡改、中断不完成、输出不覆盖。
-- [ ] 父CLI只在旧owner中调用一次；原生stdout严格解析，检查stage和semantic true及身份，绑定旧源码、父12产物和全部来源；不重新抽取不同规则或评分。
-- [ ] 发布时核对全部静态文件集合与哈希，唯一mutable路径明确写入协议；语义verify重建静态HTML/JSON/CSV，并另验工作表结构。初始manual_completed=0，live工作状态另作descriptive计数。
-- [ ] 只读代码审查，Ruff／全套pytest／公开检查／diff通过后先提交源码。
+- [x] 先RED：显式owner、B1a原生证明（两条stage JSON＋结果JSON）、构建→独立重建、静态篡改重哈希、工作表允许修改／拒绝任务篡改、中断不完成、输出不覆盖。
+- [x] 父CLI只在旧owner中调用一次；原生stdout严格解析，检查stage和semantic true及身份，绑定旧源码、父12产物和全部来源；不重新抽取不同规则或评分。
+- [x] 发布时核对全部静态文件集合与哈希，唯一mutable路径明确写入协议；语义verify重建静态HTML/JSON/CSV，并另验工作表结构。初始manual_completed=0，live工作状态另作descriptive计数。
+- [x] 只读代码审查，Ruff／全套pytest／公开检查／diff通过后先提交源码。
 
 ## T5 真实运行和交付
+
+验收记录：源码36924ae；31项新增测试及全套1011测试通过（250.01秒），Ruff/公开检查/只读复审通过。真实生成及独立verify-only通过；2339任务全pending，1992块及347候选、1077诊断完整保留。Node/Edge交互与真实页面显示核验通过；旧四owner冻结不变。运行身份93687c1ebcf2e26031c43fc08656f2fbaf0135ade7e33a7ec8ee8a48f1d451e6，详见[结果报告](../../SCENARIO_EVENT_REVIEW_B2A_RESULTS.md)。
 
 ```powershell
 python scripts/prepare_event_review.py --parent ../scenario-stop-events/outputs/scenario-events/b1a-v1 --parent-owner ../scenario-stop-events --output-root outputs/event-review/b2a-v1
 python scripts/prepare_event_review.py --output-root outputs/event-review/b2a-v1 --verify-only
 ```
 
-- [ ] 固定源完整生成，独立verify-only通过；核对1992个block、347候选及1077诊断保留，未触发block数量照实报告。
-- [ ] 无头浏览器核验首个事件显示和工作表导入导出；记录实际支持的交互检查。
-- [ ] 旧B1a/B0b/B0a/3A来源及产物均不变；文档记录资料包路径、pending状态、真实测试与限制。本地提交、不推送。
+- [x] 固定源完整生成，独立verify-only通过；核对1992个block、347候选及1077诊断保留，未触发block数量照实报告。
+- [x] 无头浏览器核验首个事件显示和工作表导入导出；记录实际支持的交互检查。
+- [x] 旧B1a/B0b/B0a/3A来源及产物均不变；文档记录资料包路径、pending状态、真实测试与限制。本地提交、不推送。
 
 下一步：实际人工复核及其版本化导入协议、新预测anchor与噪声协议，之后才是停车指标；本轮不创建人工GT或新预测分数。

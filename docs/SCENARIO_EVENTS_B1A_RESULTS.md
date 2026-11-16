@@ -1,5 +1,7 @@
 # B1a：真实时钟停车／起步候选事件验收
 
+后续进展：[B2a离线复核资料包已验收](SCENARIO_EVENT_REVIEW_B2A_RESULTS.md)。提供全部分析块与候选查看、阅读CSV及原覆盖索引，初始全pending；不导入人工GT，不改写本文结果。
+
 报告日期：2026-11-17（Asia/Shanghai）。**真实抽取与单独`--verify-only`均通过，`events_semantically_replayed=true`。** 本轮交付离线GT规则候选、诊断、状态trace和窗口覆盖统计，没有新增预测精度结果。
 
 ## 解决了什么问题
