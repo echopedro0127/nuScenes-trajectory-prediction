@@ -87,6 +87,10 @@ def parse_verdicts(text,baseline):
     try: rows=list(reader)
     except csv.Error as error: raise ValueError('malformed verdict CSV') from error
     if reader.fieldnames!=list(COLUMNS): raise ValueError('exact verdict CSV columns required')
+    return validate_records(rows,baseline)
+
+
+def validate_records(rows,baseline):
     expected=_unique(baseline,'source_event_id');seen=set()
     for row in rows:
         key=row.get('source_event_id')
@@ -112,8 +116,9 @@ def _counts(rows):
             'unresolved_rows':sum(counts[k] for k in ('pending','needs_correction','uncertain'))}
 
 
-def derive_overlay(data,rows):
+def derive_overlay(data,rows,review_identity):
     atomic,pairs,_=source_candidates(data)
+    rows=validate_records(rows,make_template(review_identity,data))
     by_id=_unique(rows,'source_event_id')
     if set(by_id)!=set(atomic) or any(r['decision'] not in DECISIONS for r in rows):
         raise ValueError('normalized verdict/source coverage mismatch')
@@ -147,5 +152,9 @@ def derive_overlay(data,rows):
              'neural_training':False,'holdout_evaluated':False}
     if sum(summary['decision_counts'].values())!=len(atomic) or sum(summary['derived_pair_counts'].values())!=len(pairs):
         raise ValueError('verdict count conservation failed')
+    totals=[g for g in groups if g['category']=='__all__']
+    if (sum(g['atomic_total'] for g in totals)!=len(atomic)
+        or any(sum(g['decision_counts'][d] for g in totals)!=summary['decision_counts'][d] for d in DECISIONS)):
+        raise ValueError('verdict role/type denominator conservation failed')
     return {'atomic_verdicts':copy.deepcopy(rows),'confirmed_candidates':confirmed,'rejected_candidates':rejected,
             'unresolved_candidates':unresolved,'derived_pairs':derived,'summary':summary}

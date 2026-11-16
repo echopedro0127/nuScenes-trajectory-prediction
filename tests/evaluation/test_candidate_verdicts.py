@@ -21,6 +21,13 @@ def source_data():
             'block_id':'c','category':'vehicle.truck'}]}
 
 
+def test_public_derivation_cannot_bypass_locked_declaration_checks(source_data):
+    from trajectory_prediction.evaluation.candidate_verdicts import derive_overlay, make_template
+    rows=make_template('review',source_data)
+    rows[0].update(role='foreign',source_task_id='forged',decision='confirmed')
+    with pytest.raises(ValueError):derive_overlay(source_data,rows,'review')
+
+
 def mark(rows,key,decision):
     row=next(r for r in rows if r['source_event_id']==key)
     row.update(decision=decision,reviewer='' if decision=='pending' else 'fixture-reader',
@@ -44,7 +51,7 @@ def test_all_composite_priorities(source_data,stop,restart):
     )
     rows=make_template('review',source_data);mark(rows,'s',stop);mark(rows,'r',restart)
     rows=parse_verdicts(csv_text(list(reversed(rows))),make_template('review',source_data))
-    result=derive_overlay(source_data,rows)
+    result=derive_overlay(source_data,rows,'review')
     expected=next((d for d in ['rejected','needs_correction','uncertain','pending'] if d in (stop,restart)),'confirmed')+'_components'
     assert result['derived_pairs'][0]['component_status']==expected
     assert result['summary']['atomic_total']==3
@@ -63,7 +70,7 @@ def test_confirmed_retains_original_censor_and_semantic_order(source_data):
     base=make_template('review',source_data);rows=[dict(r) for r in base];mark(rows,'s2','confirmed')
     a=parse_verdicts(csv_text(rows),base);b=parse_verdicts(csv_text(list(reversed(rows))),base)
     assert digest(a)==digest(b)
-    result=derive_overlay(source_data,a)
+    result=derive_overlay(source_data,a,'review')
     assert result['confirmed_candidates'][0]['source_event']['right_censored'] is True
     assert next(e for e in source_data['events'] if e['event_id']=='s2')['right_censored'] is True
     a[0]['reason']+='changed';assert digest(a)!=digest(b)
