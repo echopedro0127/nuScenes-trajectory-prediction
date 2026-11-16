@@ -757,4 +757,10 @@ RH−CV ADE差−0.105097m，配对log bootstrap95%区间[−0.128439,−0.07484
 
 准备75条pending人工工作表和62张GT图，独立于冻结产物；69个静态文件和12个数据引用核验通过。原3A的217个产物及228个冻结源码未变。完整元数据已有，无需下载新数据。
 
-首个B0子项目设计先pilot真实时钟/track/窗口映射，再扩至原缓存1967目标；代码需新worktree保护3A冻结。设计待审阅，尚未抽取canonical事件、计算新预测分数或训练。见[准备报告](SCENARIO_EVALUATION_3B_PREPARATION.md)及其中B0设计。
+首个B0子项目先pilot真实时钟/track/窗口映射，再扩至原缓存1967目标；使用新worktree保护3A冻结。准备阶段见[准备报告](SCENARIO_EVALUATION_3B_PREPARATION.md)及其中B0设计。
+
+## Phase 3B / B0a真实装配完成（2026-11-16）
+
+在feature/scenario-episodes实现有界JSON读取、完整annotation链/缺口分段、真实微秒时钟及旧窗口精确映射。真实运行和独立verify-only均通过：461目标/16010标注/608窗口，4处缺口形成465连续片段；未抽取canonical事件。源码09cbe1c，运行身份d8a904ed…664102；全套920测试通过，Ruff及公开检查通过。旧3A的228源码/217产物不变。详见[B0a验收报告](SCENARIO_TRACKS_B0A_RESULTS.md)。
+
+下一步依次为B0b原缓存1967目标扩展、B1真实时钟事件协议与抽取、episode级人审与指标，再考虑新训练。本轮没有新预测精度提升、holdout评测或GitHub推送。
