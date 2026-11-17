@@ -1,5 +1,7 @@
 # 场景驱动在线轨迹预测评测：下一阶段开发设计
 
+最新进展（2026-11-18）：B3a真实时钟查询／GT匹配与规则事件覆盖审计已全缓存运行并独立重建，1168项测试通过。22231窗口／244541查询／733623尝试保留完整分母，511854匹配、126515窗尾越界、95254超容差；无预测分数。详见[B3a报告](REALCLOCK_QUERY_AUDIT_B3A_RESULTS.md)。下一步B3b先真实dt物理回放，学习接口另行适配。
+
 最新进展（2026-11-17）：B2b2a已完成原始token边界修正、不可变模板／导入与独立重建；全套1117项测试通过，真实零eligible版本验收通过，人工修正0。详见[B2b2a报告](EVENT_BOUNDARY_CORRECTIONS_B2B2A_RESULTS.md)。新增事件／关系编辑及B3查询时钟、GT匹配、anchor和噪声协议仍需分别落实；当前没有新预测分数。
 
 日期：2026-11-10；审查修订：2026-11-11。文档分支：`feature/scenario-evaluation`，worktree：`.worktrees/scenario-evaluation`。
