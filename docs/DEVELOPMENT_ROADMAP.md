@@ -794,3 +794,9 @@ RH−CV ADE差−0.105097m，配对log bootstrap95%区间[−0.128439,−0.07484
 完成并复审[具体设计](superpowers/specs/2026-11-17-candidate-verdict-overlay-b2b1-design.md)：287个stop/restart原子候选使用独立判决CSV，60个复合关系按组成派生；完整快照保留全部未决分母，needs_correction不自动修边界或进入确认标签，阅读状态不当GT。明确B2a可变工作表与静态父证明的分离、未知字段／strict整数计数及版本化拒绝覆盖。
 
 只读核对原子任务一一对应及配对外键，B2a的245源码／11静态产物不变，现有2339阅读任务仍pending。具体新判决语义待用户确认，尚未实现导入、产生人工判决或新分数；边界修正与新anchor／噪声协议为后续独立单元。
+
+## B2b1判决导入及真实空版本验收完成（2026-11-17）
+
+用户确认后在feature/candidate-verdicts实现独立模板、严格五状态、配对优先级、父可变阅读与静态证据分离、不可变版本和独立重建。源码3bb6e96；新增58项测试，全套1069通过（273.74秒），只读复审／Ruff／公开检查通过。
+
+真实287行模板及全pending空overlay均verify-only通过，60关系pending_components、人工确认0；模板ea8b252f…79b7b9bc，空版本692ee150…168eec30。草稿与发布输入分离，旧五阶段冻结不变。详见[B2b1验收及使用说明](CANDIDATE_VERDICTS_B2B1_RESULTS.md)。当前可填写判决CSV，但不代填真实确认；边界修正与新anchor／噪声协议、预测指标仍待后续。本地提交，未推送GitHub。
