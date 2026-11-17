@@ -6,8 +6,8 @@ import pytest
 
 @pytest.fixture
 def correction_data():
-    common = dict(role='independent_fit', instance='i', block_id='b', scene='scene',
-                  log='log', category='vehicle.car')
+    common = {'role': 'independent_fit', 'instance': 'i', 'block_id': 'b', 'scene': 'scene',
+                  'log': 'log', 'category': 'vehicle.car'}
     stop = dict(common, event_id='s', event_type='stop_candidate', onset_us=1000000,
                 confirmation_us=2000000, end_us=4000000, right_censored=False,
                 low_end_censored=False, low_dwell_end_us=3000000)
@@ -35,7 +35,7 @@ def correction_data():
                    time_us=[i*500000 for i in range(1, 13)])]
     queue = [dict(task_id='task-'+e['event_id'], task_kind='event_check',
                   **{k:e[k] for k in ('role', 'instance', 'block_id', 'event_id')}) for e in events]
-    return dict(events=events, blocks=blocks, queue=queue)
+    return {'events': events, 'blocks': blocks, 'queue': queue}
 
 
 def verdicts(data, decisions=None):
@@ -51,8 +51,8 @@ def verdicts(data, decisions=None):
 def propose(rows, key, **fields):
     r = next(r for r in rows if r['source_event_id'] == key)
     block = r['block_id']
-    default = dict(onset_token=block+'2', confirmation_token=block+'4', end_token=block+'8',
-                   low_dwell_end_token=block+'6')
+    default = {'onset_token': block+'2', 'confirmation_token': block+'4', 'end_token': block+'8',
+                   'low_dwell_end_token': block+'6'}
     if key == 'r':
         default.update(onset_token='b8', confirmation_token='b10', end_token='b10',
                        low_dwell_end_token='')
@@ -94,6 +94,44 @@ def test_proposal_uses_real_tokens_preserves_source_and_censor(correction_data):
     assert correction_data == before
     assert result['summary']['eligible'] == 3 and result['summary']['proposed'] == 1
     assert result['summary']['pending'] == 2
+
+
+def test_corrected_view_does_not_claim_rule_confirmed_boundaries(correction_data):
+    correction_data['events'][3]['status'] = 'confirmed_by_rule'
+    mod, v, rows = api(correction_data)
+    propose(rows, 'z', onset_token='c3', confirmation_token='c5')
+    result = mod.derive_corrections('overlay', 'review', correction_data, v, rows)
+    event = next(e for e in result['effective_events'] if e['source_event']['event_id'] == 'z')
+    assert event['source_event']['status'] == 'confirmed_by_rule'
+    assert event['effective_event']['status'] == 'corrected_declared'
+
+
+def test_group_denominators_preserve_all_eligible_rows(correction_data):
+    mod, v, rows = api(correction_data)
+    propose(rows, 'z')
+    summary = mod.derive_corrections('overlay', 'review', correction_data, v, rows)['summary']
+    groups = [g for g in summary['groups'] if g['category'] == '__all__']
+    for field in ('eligible', 'pending', 'proposed', 'right_censored', 'low_end_censored'):
+        assert sum(g[field] for g in groups) == summary[field]
+
+
+@pytest.mark.parametrize('stop,restart,expected', [
+    ('rejected', 'confirmed', 'rejected_components'),
+    ('pending', 'rejected', 'rejected_components'),
+    ('confirmed', 'confirmed', 'derived_declared_components'),
+    ('uncertain', 'confirmed', 'unresolved_components'),
+])
+def test_relation_outcomes_and_group_denominators(correction_data, stop, restart, expected):
+    mod, v, rows = api(correction_data, {'s':stop, 'r':restart, 'z':'pending'})
+    result = mod.derive_corrections('overlay', 'review', correction_data, v, rows)
+    summary = result['summary']
+    assert result['derived_pairs'][0]['status'] == expected
+    assert result['derived_pairs'][0]['effective_pair']['status'] == expected
+    assert summary['pair_status_counts'][expected] == 1
+    groups = [g for g in summary['pair_groups'] if g['category'] == '__all__']
+    assert sum(g['pair_total'] for g in groups) == summary['source_pair_total']
+    for status, count in summary['pair_status_counts'].items():
+        assert sum(g['status_counts'][status] for g in groups) == count
 
 
 def test_paired_edits_and_unresolved_components(correction_data):

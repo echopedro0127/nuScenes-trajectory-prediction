@@ -2,6 +2,7 @@
 import copy
 import csv
 import io
+import itertools
 from collections import Counter, defaultdict
 
 from trajectory_prediction.evaluation.candidate_verdicts import (
@@ -11,13 +12,17 @@ from trajectory_prediction.evaluation.candidate_verdicts import (
     source_candidates,
     validate_records,
 )
-from trajectory_prediction.evaluation.event_review_data import MAX_CELL_CODEPOINTS, REVIEW_WHITESPACE
+from trajectory_prediction.evaluation.event_review_data import (
+    MAX_CELL_CODEPOINTS,
+    REVIEW_WHITESPACE,
+)
 
 LOCKED = ('source_overlay_identity', 'source_review_identity', 'source_event_id',
           'source_event_type', 'role', 'instance', 'block_id')
 TOKENS = ('onset_token', 'confirmation_token', 'end_token', 'low_dwell_end_token')
 EDITABLE = ('action', *TOKENS, 'reviewer', 'reason')
 COLUMNS = (*LOCKED, *EDITABLE)
+PAIR_STATUSES = ('derived_declared_components', 'rejected_components', 'unresolved_components')
 
 
 def make_template(overlay_identity, review_identity, data, verdicts):
@@ -86,7 +91,7 @@ def _clocks(data, atomic):
                 or len(tokens) < 1 or any(not isinstance(t, str) or not t for t in tokens)
                 or len(set(tokens)) != len(tokens)
                 or any(type(t) is not int or t <= 0 for t in times)
-                or any(a >= z for a,z in zip(times, times[1:], strict=False))
+                or any(a >= z for a,z in itertools.pairwise(times))
                 or times[0] != b['start_us'] or times[-1] != b['end_us']):
             raise ValueError('invalid correction block token clock')
         clocks[b['block_id']] = dict(zip(tokens, times, strict=True))
@@ -101,6 +106,7 @@ def _clocks(data, atomic):
 
 def _correct(event, row, clock, block):
     result = copy.deepcopy(event)
+    result['status'] = 'corrected_declared'
     names = TOKENS if event['event_type'] == 'stop_candidate' else TOKENS[:3]
     for name in names:
         token = row[name]
@@ -138,9 +144,9 @@ def derive_corrections(overlay_identity, review_identity, data, verdicts, rows):
         e = (_correct(source, proposals[key], clocks[source['block_id']], blocks[source['block_id']])
              if key in proposals else copy.deepcopy(source))
         effective[key] = e
-        events.append(dict(source_event=copy.deepcopy(source), effective_event=e,
-                           status='corrected_declared' if key in proposals else decisions[key],
-                           correction=copy.deepcopy(proposals.get(key))))
+        events.append({'source_event': copy.deepcopy(source), 'effective_event': e,
+                           'status': 'corrected_declared' if key in proposals else decisions[key],
+                           'correction': copy.deepcopy(proposals.get(key))})
     derived = []
     for p in pairs:
         s, r = effective[p['stop_id']], effective[p['restart_id']]
@@ -153,9 +159,12 @@ def derive_corrections(overlay_identity, review_identity, data, verdicts, rows):
         statuses = [('corrected_declared' if k in proposals else decisions[k])
                     for k in (p['stop_id'], p['restart_id'])]
         usable = all(v in ('corrected_declared', 'confirmed') for v in statuses)
-        derived.append(dict(source_pair=copy.deepcopy(p), effective_pair=view,
-                            component_statuses=statuses,
-                            status='derived_declared_components' if usable else 'unresolved_components'))
+        status = ('rejected_components' if 'rejected' in statuses else
+                  'derived_declared_components' if usable else 'unresolved_components')
+        view['status'] = status
+        derived.append({'source_pair': copy.deepcopy(p), 'effective_pair': view,
+                            'component_statuses': statuses,
+                            'status': status})
     by_block = defaultdict(list)
     for key,e in effective.items():
         # A rejected candidate remains evidence, but is not an effective event.
@@ -163,34 +172,39 @@ def derive_corrections(overlay_identity, review_identity, data, verdicts, rows):
             by_block[e['block_id']].append(e)
     for values in by_block.values():
         ordered = sorted(values, key=lambda e:(e['onset_us'], e['end_us'], e['event_id']))
-        if any(a['end_us'] > b['onset_us'] for a,b in zip(ordered, ordered[1:], strict=False)):
+        if any(a['end_us'] > b['onset_us'] for a,b in itertools.pairwise(ordered)):
             raise ValueError('effective event overlap conflict')
 
     def counts(selected):
         proposed = sum(r['action'] == 'propose' for r in selected)
         censored = sum(atomic[r['source_event_id']]['right_censored'] for r in selected)
-        return dict(eligible=len(selected), pending=len(selected)-proposed, proposed=proposed,
-                    right_censored=censored, proposed_fraction=proposed/len(selected) if selected else None,
-                    low_end_censored=sum(atomic[r['source_event_id']].get('low_end_censored') is True for r in selected),
-                    fraction_status='defined' if selected else 'not_evaluable',
-                    fraction_reason=None if selected else 'no_eligible_corrections')
+        return {'eligible': len(selected), 'pending': len(selected)-proposed, 'proposed': proposed,
+                    'right_censored': censored, 'proposed_fraction': proposed/len(selected) if selected else None,
+                    'low_end_censored': sum(atomic[r['source_event_id']].get('low_end_censored') is True for r in selected),
+                    'fraction_status': 'defined' if selected else 'not_evaluable',
+                    'fraction_reason': None if selected else 'no_eligible_corrections'}
 
-    groups = []
+    groups, pair_groups = [], []
     for role in ('independent_fit', 'independent_select'):
         for category in ['__all__', *sorted({b['category'] for b in data['blocks'] if b['role'] == role})]:
             for kind in ('stop_candidate', 'restart_candidate'):
                 selected = [r for r in rows if r['role'] == role and r['source_event_type'] == kind
                             and (category == '__all__' or atomic[r['source_event_id']]['category'] == category)]
                 groups.append(dict(role=role, category=category, event_type=kind, **counts(selected)))
+            selected_pairs = [p for p in derived if p['source_pair']['role'] == role
+                              and (category == '__all__' or p['source_pair']['category'] == category)]
+            pair_counts = Counter(p['status'] for p in selected_pairs)
+            pair_groups.append({'role':role, 'category':category, 'pair_total':len(selected_pairs),
+                                'status_counts':{k:pair_counts[k] for k in PAIR_STATUSES}})
     n = len(proposals)
     pair_counts = Counter(p['status'] for p in derived)
     summary = dict(counts(rows), status='no_eligible_corrections' if not rows else
                    'corrections_declared' if n else 'no_boundary_declarations',
                    source_atomic_total=len(atomic), source_pair_total=len(pairs),
-                   pair_status_counts={k:pair_counts[k] for k in ('derived_declared_components', 'unresolved_components')},
+                   pair_status_counts={k:pair_counts[k] for k in PAIR_STATUSES},
                    low_end_censored=sum(atomic[r['source_event_id']].get('low_end_censored') is True for r in rows),
                    human_boundary_declarations_imported=bool(n), official_event_ground_truth=False,
                    exhaustive_event_annotation=False, neural_training=False, holdout_evaluated=False,
-                   new_prediction_scores_computed=False, groups=groups)
-    return dict(corrections=copy.deepcopy(rows), effective_events=events,
-                derived_pairs=derived, summary=summary)
+                   new_prediction_scores_computed=False, groups=groups, pair_groups=pair_groups)
+    return {'corrections': copy.deepcopy(rows), 'effective_events': events,
+                'derived_pairs': derived, 'summary': summary}
