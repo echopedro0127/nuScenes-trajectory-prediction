@@ -1,5 +1,7 @@
 # 场景驱动在线轨迹预测评测：下一阶段开发设计
 
+最新进展（2026-11-17）：B2b2a已完成原始token边界修正、不可变模板／导入与独立重建；全套1117项测试通过，真实零eligible版本验收通过，人工修正0。详见[B2b2a报告](EVENT_BOUNDARY_CORRECTIONS_B2B2A_RESULTS.md)。新增事件／关系编辑及B3查询时钟、GT匹配、anchor和噪声协议仍需分别落实；当前没有新预测分数。
+
 日期：2026-11-10；审查修订：2026-11-11。文档分支：`feature/scenario-evaluation`，worktree：`.worktrees/scenario-evaluation`。
 
 **状态：S0–S7正式评测已完成，单独verify-only通过。** 608窗口/5472流/16策略/41案例，完整结果及负结果见[Phase 3A报告](SCENARIO_EVALUATION_PHASE3A_RESULTS.md)，协议见[S7](SCENARIO_EVALUATION_S7_PROTOCOL.md)。S4d人工复核仍pending；规则标签不是人工真值，本轮不训练、不评价holdout，不包装为全面模型提升。

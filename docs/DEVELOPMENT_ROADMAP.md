@@ -800,3 +800,11 @@ RH−CV ADE差−0.105097m，配对log bootstrap95%区间[−0.128439,−0.07484
 用户确认后在feature/candidate-verdicts实现独立模板、严格五状态、配对优先级、父可变阅读与静态证据分离、不可变版本和独立重建。源码3bb6e96；新增58项测试，全套1069通过（273.74秒），只读复审／Ruff／公开检查通过。
 
 真实287行模板及全pending空overlay均verify-only通过，60关系pending_components、人工确认0；模板ea8b252f…79b7b9bc，空版本692ee150…168eec30。草稿与发布输入分离，旧五阶段冻结不变。详见[B2b1验收及使用说明](CANDIDATE_VERDICTS_B2B1_RESULTS.md)。当前可填写判决CSV，但不代填真实确认；边界修正与新anchor／噪声协议、预测指标仍待后续。本地提交，未推送GitHub。
+
+## B2b2a原始token边界修正完成（2026-11-17）
+
+在feature/event-boundary-corrections实现已有needs_correction候选的结构化修正声明：同block真实token映射微秒、删失不解除、配对／重叠冲突整次拒绝、原事件与声明分层保存，包含rejected的关系单列并按角色／类别守恒。原owner原生验证、不可变发布及逐文件语义重建全部接通。
+
+源码632c3b2；新增48项测试（35纯规则＋13集成），全套1117通过（502.05秒），Ruff／公开检查／只读复审通过。真实模板38c1e18b…20fbd22a与空版本80a9c6ab…c3aac1d6均独立verify-only通过。父287事件／60关系保留，eligible=0、人工修正0，不声称新GT或精度提升。旧六阶段自身冻结清单核对通过，B0a作为独立旁支另行保全。
+
+详见[B2b2a验收报告](EVENT_BOUNDARY_CORRECTIONS_B2B2A_RESULTS.md)。真实修正需先提供B2b1判决，不能向零行模板新增事件。后续分别推进B2b2b新增／关系编辑与B3实际查询、GT时域匹配、anchor覆盖、噪声协议；停车指标待前置契约就绪。仅本地提交，未推送GitHub。
