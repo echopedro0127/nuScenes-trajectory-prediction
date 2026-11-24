@@ -1,5 +1,7 @@
 # 场景驱动在线轨迹预测评测：下一阶段开发设计
 
+最新进展（2026-11-24）：B3b2a已完成source-keyed Gaussian两强度×三seed×四物理策略24组合，1256项测试及独立验收通过。select 1秒，actual KF相对actual CV误差下降38.83%（sigma0.5m）／50.91%（sigma1.0m）；1.0m时actual CV却比fixed state-control退化0.25%，完整保留。详见[B3b2a报告](REALCLOCK_PHYSICS_GAUSSIAN_B3B2A_RESULTS.md)。后续离群／NIS另行冻结，当前没有actual-dt自适应门控成果。
+
 最新进展（2026-11-24）：B3b1已完成四组CV/KF的真实dt／固定dt状态控制clean对照与独立验收，1213项测试通过。select 1秒窗口平均位置误差：CV 0.711013→0.633016m（下降10.97%），KF 1.024706→0.998683m（下降2.54%）；actual KF仍差于actual CV，完整负结果保留。详见[B3b1报告](REALCLOCK_PHYSICS_CLEAN_B3B1_RESULTS.md)。下一步B3b2噪声／异常协议，学习网络尚未迁移actual dt。
 
 最新进展（2026-11-18）：B3a真实时钟查询／GT匹配与规则事件覆盖审计已全缓存运行并独立重建，1168项测试通过。22231窗口／244541查询／733623尝试保留完整分母，511854匹配、126515窗尾越界、95254超容差；无预测分数。详见[B3a报告](REALCLOCK_QUERY_AUDIT_B3A_RESULTS.md)。下一步B3b先真实dt物理回放，学习接口另行适配。

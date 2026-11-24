@@ -824,3 +824,11 @@ RH−CV ADE差−0.105097m，配对log bootstrap95%区间[−0.128439,−0.07484
 源码e1f3f39；新增45项测试，全套1213通过（870.16秒），Ruff／公开扫描／只读复审通过。22231窗口、244541查询、每策略511854有效比较。select 1秒：CV fixed 0.711013→actual 0.633016m（下降10.97%）；KF 1.024706→0.998683m（下降2.54%）。actual KF却比actual CV高57.77%，clean下未获胜，部分尾部也退化，全部保留；不是官方ADE/FDE或新holdout结果。
 
 运行身份272dd117…e6feb86；重放／保存预测重算／1408状态＋704 KF covariance标量检查均通过，实际OpenBLAS前后2线程，旧八阶段保全通过。详见[B3b1完整结果](REALCLOCK_PHYSICS_CLEAN_B3B1_RESULTS.md)。下一步B3b2同源噪声与异常实验，验证抗噪收益；无新训练、人工标签或传感器输入。本地提交，未推送GitHub。
+
+## B3b2a源包Gaussian抗噪对照完成（2026-11-24）
+
+feature/realclock-physics-gaussian按源annotation键生成PCG64标准Z，跨窗口／策略／sigma共享；带噪声首观测作原点，GT只共同平移不注噪，固定R=.25／q=1。两强度×三seed×四策略共24组合，逐片发布并从源键、保存预测和独立标量参考验证，另对冻结clean作sigma0精确回归。
+
+源码73070d2；新增43项测试，全套1256通过（954.45秒），Ruff／公开扫描／只读复审通过。每组合22231窗口、511854有效评分，全部3seed保留。select 1秒，actual CV/KF均值：sigma0.5为2.400904／1.468641m，KF下降38.83%；sigma1.0为4.596162／2.256338m，下降50.91%。actual CV在1.0m下相对fixed control反而退化0.25%，不外推clean时间适配收益。
+
+运行身份6eca3e0c…5c073551，24组合独立重建／保存预测重算、8448状态＋4224 KF covariance标量核对、17736次全局坐标评分抽查通过；旧九阶段保全通过。详见[B3b2a完整报告](REALCLOCK_PHYSICS_GAUSSIAN_B3B2A_RESULTS.md)。下一步离群／NIS与因果可靠性策略，尚未实现actual-dt门控。仅合成位置噪声，无新训练／holdout／真实感知成绩。本地提交，未推送GitHub。
