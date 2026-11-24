@@ -816,3 +816,11 @@ RH−CV ADE差−0.105097m，配对log bootstrap95%区间[−0.128439,−0.07484
 源码6ccc8b0；新增51项测试，全套1168通过（505.99秒），Ruff／公开扫描／只读复审通过。真实22231窗口、244541查询、733623匹配尝试；511854 matched、126515窗尾、95254超容差；42687不同源查询、39460不同匹配GT。规则候选227 stop中204、60 restart中49存在任一提前查询，不是模型命中率。
 
 运行身份e52bac9e…de501fa7，独立verify与64窗口／2112次标量抽查均通过，旧七阶段冻结清单保全通过。详见[B3a结果报告](REALCLOCK_QUERY_AUDIT_B3A_RESULTS.md)。下一步B3b真实dt CV／KF物理重放，冻结观测／RNG／异常协议；旧固定步长门控仍nominal-only，人工标签仍未提供。无新训练／holdout／预测分数，只本地提交，未推送GitHub。
+
+## B3b1真实dt clean物理对照完成（2026-11-24）
+
+在feature/realclock-physics-clean实现CV/KF × actual-dt/fixed-dt-state-control四组。前16点逐包暖启动／更新，GT目标只在状态冻结后评价；float64、Joseph covariance、相同GT/mask窗口/log聚合与配对差，按策略保存原状态／预测／误差。正式发布和verify均有固定哈希独立标量参考，另从保存预测独立重算。
+
+源码e1f3f39；新增45项测试，全套1213通过（870.16秒），Ruff／公开扫描／只读复审通过。22231窗口、244541查询、每策略511854有效比较。select 1秒：CV fixed 0.711013→actual 0.633016m（下降10.97%）；KF 1.024706→0.998683m（下降2.54%）。actual KF却比actual CV高57.77%，clean下未获胜，部分尾部也退化，全部保留；不是官方ADE/FDE或新holdout结果。
+
+运行身份272dd117…e6feb86；重放／保存预测重算／1408状态＋704 KF covariance标量检查均通过，实际OpenBLAS前后2线程，旧八阶段保全通过。详见[B3b1完整结果](REALCLOCK_PHYSICS_CLEAN_B3B1_RESULTS.md)。下一步B3b2同源噪声与异常实验，验证抗噪收益；无新训练、人工标签或传感器输入。本地提交，未推送GitHub。

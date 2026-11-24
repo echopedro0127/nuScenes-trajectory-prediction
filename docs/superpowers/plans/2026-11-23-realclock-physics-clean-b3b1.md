@@ -11,27 +11,29 @@
 ## T1 State machine
 
 - [x] Create ignored `.worktrees/realclock-physics-clean`, branch feature/realclock-physics-clean, base 1fb9a01; main user files untouched.
-- [ ] Add failing `tests/robustness/test_realclock_physics.py` for `replay_states(times[N,16], positions[N,16,2], strategy)` and implement `robustness/realclock_physics.py`.
-- [ ] Cover irregular analytic CV, fixed-vs-actual equivalence at .5s, independent scalar KF, first-two initialization plus historical warmup, future-perturbation invariance, covariance symmetry/PSD, bad clock/dtype/nonfinite rejection. Only indices0..15 enter state replay; index16 never assimilated.
+- [x] Add failing `tests/robustness/test_realclock_physics.py` for `replay_states(times[N,16], positions[N,16,2], strategy)` and implement `robustness/realclock_physics.py`.
+- [x] Cover irregular analytic CV, fixed-vs-actual equivalence at .5s, independent scalar KF, first-two initialization plus historical warmup, future-perturbation invariance, covariance symmetry/PSD, bad clock/dtype/nonfinite rejection. Only indices0..15 enter state replay; index16 never assimilated.
 
 ## T2 Sources and metrics
 
-- [ ] Add RED tests then implement `evaluation/physics_clean_data.py`: load parent stable windows/clocks and original B0b world_xy by role/token; verify source identity/clock; subtract first arrived point float64. Save origin, shared full GT and parent mapping, never pass GT targets to physics state code.
-- [ ] Implement evaluator and `evaluation/physics_clean_metrics.py` with per-window means, role/log groups, pooled-query P50/P95 and E>2 proportion, actual-lead diagnostics, explicit zero-denominator reasons, and same-mask paired differences. Save per-window results and per-query errors; invalid values are zero placeholders with mandatory valid mask.
-- [ ] Verify hand-computable unequal-query windows, log macro versus query pooling, empty lead windows, paired sets and independent error reconstruction.
+- [x] Add RED tests then implement `evaluation/physics_clean_data.py`: load parent stable windows/clocks and original B0b world_xy by role/token; verify source identity/clock; subtract first arrived point float64. Save origin, shared full GT and parent mapping, never pass GT targets to physics state code.
+- [x] Implement evaluator and `evaluation/physics_clean_metrics.py` with per-window means, role/log groups, pooled-query P50/P95 and E>2 proportion, actual-lead diagnostics, explicit zero-denominator reasons, and same-mask paired differences. Save per-window results and per-query errors; invalid values are zero placeholders with mandatory valid mask.
+- [x] Verify hand-computable unequal-query windows, log macro versus query pooling, empty lead windows, paired sets and independent error reconstruction.
 
 ## T3 Immutable release
 
-- [ ] Add `evaluation/physics_clean_sources.py`: verify original B3a CLI in explicit owner; bind all parent immutable artifacts, owner sources and refs, exact proof fields/payload; subsequent verify rechecks frozen refs and saved proof. Parent must be metadata-only B3a.
-- [ ] Add `evaluation/physics_clean.py` and CLI `scripts/run_realclock_physics_clean.py`; source/runtime/protocol binding, directory nonoverwrite, completed last, failure marker. Publish shared.npz, windows.json, each strategy state/covariance/prediction/error shard, grouped/per-window metrics and paired deltas.
-- [ ] Add integration RED→GREEN tests with frozen synthetic B3a owner and real assembly; verify all predictions/states/covariances/metrics from original observations plus a second metrics reconstruction from saved predictions/shared GT. Reject rehashed tampering, extra files, source/proof/policy changes and interrupted release.
+- [x] Add `evaluation/physics_clean_sources.py`: verify original B3a CLI in explicit owner; bind all parent immutable artifacts, owner sources and refs, exact proof fields/payload; subsequent verify rechecks frozen refs and saved proof. Parent must be metadata-only B3a.
+- [x] Add `evaluation/physics_clean.py` and CLI `scripts/run_realclock_physics_clean.py`; source/runtime/protocol binding, directory nonoverwrite, completed last, failure marker. Publish shared.npz, windows.json, each strategy state/covariance/prediction/error shard, grouped/per-window metrics and paired deltas.
+- [x] Add integration RED→GREEN tests with frozen synthetic B3a owner and real assembly; verify all predictions/states/covariances/metrics from original observations plus a second metrics reconstruction from saved predictions/shared GT. Reject rehashed tampering, extra files, source/proof/policy changes and interrupted release.
 - [x] Add `evaluation/physics_clean_reference.py`: fixed SHA256 sample of at most16 windows per role, independent scalar H/inverse Joseph replay, checked in both prepare/verify; publish scalar_reference.json. A finite common-bias regression test must reject completion.
 
 ## T4 Review, experiment and report
 
-- [ ] Read-only review against approved spec, resolve evidenced issues with regression tests. Focused tests, Ruff, public-file scan, full pytest with workspace basetemp and diff check. Never relax protocol to favor results.
-- [ ] Commit stable source before formal run. Parent is `../realclock-query-audit/outputs/realclock-query-audit/b3a-v1`, owner `../realclock-query-audit`; output new `outputs/realclock-physics-clean/b3b1-v1`.
-- [ ] Verify-only independently replays all four strategies and recomputes scores; fixed-hash sample slow scalar CV/KF at pre-frozen atol/rtol1e-10, verify original source and all previous phase manifests. Assert 22231 windows, 244541 queries and 511854 valid pairs per strategy.
-- [ ] Record actual fit/select results for all four strategies and signed improvements/regressions in `docs/REALCLOCK_PHYSICS_CLEAN_B3B1_RESULTS.md`; update roadmap/spec/plan. Commit locally, preserve branch, do not push.
+- [x] Read-only review against approved spec, resolve evidenced issues with regression tests. Focused tests, Ruff, public-file scan, full pytest with workspace basetemp and diff check. Never relax protocol to favor results.
+- [x] Commit stable source before formal run. Parent is `../realclock-query-audit/outputs/realclock-query-audit/b3a-v1`, owner `../realclock-query-audit`; output new `outputs/realclock-physics-clean/b3b1-v1`.
+- [x] Verify-only independently replays all four strategies and recomputes scores; fixed-hash sample slow scalar CV/KF at pre-frozen atol/rtol1e-10, verify original source and all previous phase manifests. Assert 22231 windows, 244541 queries and 511854 valid pairs per strategy.
+- [x] Record actual fit/select results for all four strategies and signed improvements/regressions in `docs/REALCLOCK_PHYSICS_CLEAN_B3B1_RESULTS.md`; update roadmap/spec/plan. Commit locally, preserve branch, do not push.
 
 Commands use sibling `../trajectory-mvp/.venv/Scripts/python.exe`, PYTHONPATH=src, OMP/MKL/OPENBLAS_NUM_THREADS=2 at process startup. The run binds requested environment, not an unobserved actual thread count; formal execution additionally records external threadpool_info before/after. Finish source edits before formal publication. The physical strategies have no training seeds; clean is ideal annotation-derived observation, not detection/tracking accuracy. B3b2 noise and learned-model adaptation are separate.
+
+Acceptance 2026-11-24: source e1f3f39; 1213 passed in 870.16s (45 new). Formal run 272dd11799b4a545882578cfb8866be619e09d25e1609db15fa7a08e5e6feb86; independent replay, saved-prediction rescore and 1408 sampled states / 704 KF covariances passed. 22231 windows; 511854 valid pairs per strategy. Actual BLAS2 before/after. Eight earlier stages preserved. Results, including clean KF regressions, in ../../REALCLOCK_PHYSICS_CLEAN_B3B1_RESULTS.md.
