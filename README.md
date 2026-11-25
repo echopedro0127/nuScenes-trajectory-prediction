@@ -16,6 +16,39 @@ supplementary contribution is causal online trajectory correction: reforecasting
 observations available at each 0.5-second update, and measuring correction gain, jitter,
 and latency separately from the official static protocol.
 
+## Latest progress — 2026-11-25
+
+The current real-clock track studies **causal online trajectory prediction and robust
+correction on nuScenes**. It uses metadata-derived XY observations, shared source-keyed
+synthetic perturbations, actual update timestamps, and pristine ground truth. The older
+static and online benchmark tables below use separate protocols.
+
+| Completed comparison | Select development results at 1 s |
+| --- | --- |
+| Clean CV, fixed versus actual assimilation dt | 0.711013 → 0.633016 m; 10.97% lower error |
+| Gaussian 0.5 m, actual CV versus KF | 2.400904 → 1.468641 m; 38.83% lower error |
+| Gaussian 1.0 m, actual CV versus KF | 4.596162 → 2.256338 m; 50.91% lower error |
+| Gaussian 0.5 m + sparse 5 m outliers, KF versus NIS-KF | 1.846843 → 1.684352 m; 8.80% lower error |
+
+These are window-macro position errors, not official challenge ADE/FDE or new holdout
+scores. Noisy rows average three observation-noise seeds. Each combination shares
+22,231 windows and 511,854 valid target comparisons. Outlier P95 falls 28.76%, while
+NIS slightly worsens clean/Gaussian mean error by 0.47%/0.54% and can worsen the first
+update after an outlier. These tradeoffs are retained in the reports.
+
+The latest code passed **1,289 tests**, independent semantic replay, saved-prediction
+rescoring and scalar-reference checks. Recovery diagnostics are complete; the proposed
+21 new recovery runs are **designed but not implemented or evaluated**. Historical mini
+Radar experiments are documented separately and are not inputs to these real-clock
+results.
+
+- [Current project progress and improvement summary](docs/PROJECT_PROGRESS_2026_11_25.md)
+- [Clean real-clock results](docs/REALCLOCK_PHYSICS_CLEAN_B3B1_RESULTS.md)
+- [Source-keyed Gaussian results](docs/REALCLOCK_PHYSICS_GAUSSIAN_B3B2A_RESULTS.md)
+- [Outlier and NIS results](docs/REALCLOCK_PHYSICS_OUTLIER_B3B2B_RESULTS.md)
+- [Recovery diagnostics](docs/REALCLOCK_RECOVERY_FORENSICS_B3B2C.md)
+- [Proposed causal recovery experiment](docs/superpowers/specs/2026-11-25-causal-innovation-recovery-b3b2d-design.md)
+
 ## Project documents
 
 - [Project plan](PROJECT_PLAN.md)
