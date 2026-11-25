@@ -832,3 +832,11 @@ feature/realclock-physics-gaussian按源annotation键生成PCG64标准Z，跨窗
 源码73070d2；新增43项测试，全套1256通过（954.45秒），Ruff／公开扫描／只读复审通过。每组合22231窗口、511854有效评分，全部3seed保留。select 1秒，actual CV/KF均值：sigma0.5为2.400904／1.468641m，KF下降38.83%；sigma1.0为4.596162／2.256338m，下降50.91%。actual CV在1.0m下相对fixed control反而退化0.25%，不外推clean时间适配收益。
 
 运行身份6eca3e0c…5c073551，24组合独立重建／保存预测重算、8448状态＋4224 KF covariance标量核对、17736次全局坐标评分抽查通过；旧九阶段保全通过。详见[B3b2a完整报告](REALCLOCK_PHYSICS_GAUSSIAN_B3B2A_RESULTS.md)。下一步离群／NIS与因果可靠性策略，尚未实现actual-dt门控。仅合成位置噪声，无新训练／holdout／真实感知成绩。本地提交，未推送GitHub。
+
+## B3b2b源包离群与NIS实验（2026-11-25）
+
+feature/realclock-physics-outlier实现5%概率、5m幅值源键离群与真实时钟NIS测量降权，固定q=1、R=.25I、阈值9.21、R倍数上限25；异常标签只进评价。clean一次、Gaussian及Gaussian+outlier各三seed，四策略共28组合；8个源码/入口、5个测试文件、33项新增测试，全套1289通过（919.93s）。源码66e2634／dd5b457／ef64bb3。
+
+select、1秒、三seed窗口均值：离群条件KF 1.846843→NIS-KF 1.684352m，降低8.80%；P95 5.672426→4.041296m，降低28.76%。clean和纯Gaussian却退化0.47%／0.54%；异常后一包三个seed均略退化，不能称全时域更快恢复。报警召回96.12%–98.08%，precision仅46.47%–47.40%，不等同真实传感器故障识别。
+
+运行身份6f3306c2…ae099e6；每组合22231窗口／511854有效比较，8个冻结父基线精确回归。完整语义重放、保存预测／检测恢复重评分，以及外部世界坐标／源哈希／48组宏均值和旧十阶段保全均通过。详见[B3b2b报告](REALCLOCK_PHYSICS_OUTLIER_B3B2B_RESULTS.md)。下一步针对异常后正常包与真实机动的代价设计因果可靠性恢复，不修改本轮阈值搜有利结果。无新训练／holdout／实际感知成绩，仅本地提交，不推送。
