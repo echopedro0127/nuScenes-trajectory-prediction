@@ -4,7 +4,7 @@ import numpy as np
 
 def _recover(spikes,baseline,robust,shared,indices,k):
     n=len(spikes);counts=np.zeros(n,np.int64);sums=np.zeros((n,4),np.float64)
-    excluded=dict(excluded_truncated=0,excluded_new_outlier=0,excluded_invalid_gt=0)
+    excluded={'excluded_truncated':0,'excluded_new_outlier':0,'excluded_invalid_gt':0}
     for j in range(5,16):
         active=spikes[indices,j];at=indices[active]
         if j+k>15:excluded['excluded_truncated']+=len(at);continue

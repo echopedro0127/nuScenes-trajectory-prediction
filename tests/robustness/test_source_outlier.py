@@ -6,8 +6,8 @@ import pytest
 
 
 def reference(key,seed,channel):
-    raw=json.dumps(dict(schema='realclock_outlier_packet_b3b2b_v1',source_key_digest=key,
-                        noise_seed=seed,channel=channel),sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()
+    raw=json.dumps({'schema':'realclock_outlier_packet_b3b2b_v1','source_key_digest':key,
+                    'noise_seed':seed,'channel':channel},sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()
     return int.from_bytes(hashlib.sha256(raw).digest()[:8],'big')
 
 
