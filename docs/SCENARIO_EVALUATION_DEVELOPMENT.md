@@ -1,5 +1,7 @@
 # 场景驱动在线轨迹预测评测：下一阶段开发设计
 
+最新进展（2026-11-25）：[B3b2c只读诊断](REALCLOCK_RECOVERY_FORENSICS_B3B2C.md)完成，发现离群后首包持续降权、反向创新与初始化污染的分层证据；没有新增模型实验。[B3b2d因果恢复草案](superpowers/specs/2026-11-25-causal-innovation-recovery-b3b2d-design.md)拟以双报警/反向/幅值下降条件缓和R，比较21组新预测与14父参考单元，待审阅。开放环候选信号不是闭环收益，不更新已验收的B3b2b成绩。
+
 最新进展（2026-11-25）：B3b2b真实dt离群／NIS已完成28组合生成、独立语义重放／重评分、外部验收和全套1289项测试。select 1秒，合成离群条件NIS-KF相对KF误差下降8.80%、P95下降28.76%；clean／Gaussian却退化0.47%／0.54%，离群后一包三个seed均略差，保留全部边界。详见[B3b2b报告](REALCLOCK_PHYSICS_OUTLIER_B3B2B_RESULTS.md)。后续优先研究因果可靠性恢复，尚无新学习门控、重训或真实感知成绩。
 
 最新进展（2026-11-24）：B3b2a已完成source-keyed Gaussian两强度×三seed×四物理策略24组合，1256项测试及独立验收通过。select 1秒，actual KF相对actual CV误差下降38.83%（sigma0.5m）／50.91%（sigma1.0m）；1.0m时actual CV却比fixed state-control退化0.25%，完整保留。详见[B3b2a报告](REALCLOCK_PHYSICS_GAUSSIAN_B3B2A_RESULTS.md)。后续离群／NIS另行冻结，当前没有actual-dt自适应门控成果。
